@@ -73,7 +73,7 @@ export function Header({
       <div className="flex items-center space-x-3">
         {/* Real-time Connection Indicator */}
         <div
-          title={isWsConnected ? "Sincronizado en tiempo real" : "Reconectando WebSocket..."}
+          title={isWsConnected ? "Sincronizado en tiempo real" : "Reconectando..."}
           className="flex items-center space-x-1.5 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-medium dark:border-slate-800 dark:bg-slate-800"
         >
           {isWsConnected ? (
@@ -82,7 +82,7 @@ export function Header({
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
               </span>
-              <span className="text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
+              <span className="text-emerald-700 dark:text-emerald-400 flex items-center gap-1 font-semibold">
                 <Wifi className="h-3 w-3" /> En Vivo
               </span>
             </>

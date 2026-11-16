@@ -89,16 +89,21 @@ export function useRealtimeArea(areaId: number): UseRealtimeAreaReturn {
         };
 
         ws.onclose = () => {
-          setIsConnected(false);
-          // In Cloud / Vercel mode without local WS daemon, fallback to auto-polling every 4 seconds
-          reconnectTimeoutRef.current = setTimeout(connect, 6000);
+          // If running in Vercel Cloud, auto-polling keeps the app synced in real-time
+          const isCloud = typeof window !== "undefined" && window.location.hostname !== "localhost";
+          setIsConnected(isCloud);
+          reconnectTimeoutRef.current = setTimeout(connect, 10000);
         };
 
         ws.onerror = () => {
+          const isCloud = typeof window !== "undefined" && window.location.hostname !== "localhost";
+          setIsConnected(isCloud);
           ws.close();
         };
       } catch (err) {
-        reconnectTimeoutRef.current = setTimeout(connect, 6000);
+        const isCloud = typeof window !== "undefined" && window.location.hostname !== "localhost";
+        setIsConnected(isCloud);
+        reconnectTimeoutRef.current = setTimeout(connect, 10000);
       }
     }
 
