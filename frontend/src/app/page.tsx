@@ -73,10 +73,16 @@ export default function HomePage() {
     enabled: !!currentAreaId,
   });
 
-  // Select default user once loaded
+  // Select default user once loaded or restore from localStorage
   React.useEffect(() => {
-    if (usuarios.length > 0 && (!currentUser || currentUser.area_id !== currentAreaId)) {
-      setCurrentUser(usuarios[0]);
+    if (usuarios.length > 0) {
+      const savedUserId = typeof window !== "undefined" ? localStorage.getItem("secretaria_user_id") : null;
+      const matched = savedUserId ? usuarios.find((u) => u.id === Number(savedUserId)) : null;
+      if (matched) {
+        setCurrentUser(matched);
+      } else if (!currentUser || currentUser.area_id !== currentAreaId) {
+        setCurrentUser(usuarios[0]);
+      }
     }
   }, [usuarios, currentAreaId, currentUser]);
 
@@ -151,7 +157,12 @@ export default function HomePage() {
         }}
         usuarios={usuarios}
         currentUser={currentUser}
-        onUserChange={setCurrentUser}
+        onUserChange={(u) => {
+          setCurrentUser(u);
+          if (typeof window !== "undefined") {
+            localStorage.setItem("secretaria_user_id", String(u.id));
+          }
+        }}
         isWsConnected={isConnected}
         onOpenNewDoc={() => setIsNewDocOpen(true)}
         onOpenHelp={() => setIsHelpOpen(true)}
@@ -166,6 +177,7 @@ export default function HomePage() {
         portadoresDisponibles={portadoresDisponibles}
         totalRegistros={documentos.length}
         focusSearchTrigger={focusSearchTrigger}
+        currentUserName={currentUser?.nombre_completo}
       />
 
       {/* Dense High-Speed Document Grid */}

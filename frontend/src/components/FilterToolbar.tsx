@@ -11,6 +11,7 @@ interface FilterToolbarProps {
   portadoresDisponibles: string[];
   totalRegistros: number;
   focusSearchTrigger: number;
+  currentUserName?: string;
 }
 
 export function FilterToolbar({
@@ -20,6 +21,7 @@ export function FilterToolbar({
   portadoresDisponibles,
   totalRegistros,
   focusSearchTrigger,
+  currentUserName,
 }: FilterToolbarProps) {
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -78,6 +80,28 @@ export function FilterToolbar({
             </kbd>
           )}
         </div>
+
+        {/* Quick Filter: Mis trámites (Para las 2 secretarias) */}
+        {currentUserName && (
+          <button
+            onClick={() => {
+              if (filters.portador === currentUserName) {
+                updateField("portador", "TODOS");
+              } else {
+                updateField("portador", currentUserName);
+              }
+            }}
+            className={`h-8 rounded-md px-2.5 font-bold transition flex items-center space-x-1 border ${
+              filters.portador === currentUserName
+                ? "bg-blue-600 text-white border-blue-600 shadow-sm"
+                : "bg-white text-slate-700 border-slate-200 hover:bg-slate-100 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300"
+            }`}
+            title="Alternar entre ver todos los trámites de la oficina o solo los que tengo asignados"
+          >
+            <span>📌</span>
+            <span>Mis Trámites</span>
+          </button>
+        )}
 
         {/* Filter: Estado */}
         <div className="flex items-center space-x-1">
