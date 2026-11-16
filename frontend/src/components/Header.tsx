@@ -102,31 +102,35 @@ export function Header({
           )}
         </div>
 
-        {/* Authenticated Secretary Profile */}
+        {/* Authenticated Secretary Profile & Logout */}
         {currentUser && (
-          <div className="flex items-center space-x-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-xs dark:border-slate-700 dark:bg-slate-800">
-            <span className="font-semibold text-slate-500 dark:text-slate-400">👤</span>
-            <span className="font-bold text-slate-900 dark:text-white">{currentUser.nombre_completo}</span>
-            <span className="rounded bg-blue-100 px-1 py-0.2 text-[9px] font-bold text-blue-700 dark:bg-blue-900/60 dark:text-blue-300">
-              {currentUser.rol}
-            </span>
+          <div className="flex items-center space-x-1.5">
+            <div className="flex items-center space-x-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs dark:border-slate-700 dark:bg-slate-800">
+              <span className="font-semibold text-slate-500 dark:text-slate-400">👤</span>
+              <span className="font-bold text-slate-900 dark:text-white">{currentUser.nombre_completo}</span>
+              <span className="rounded bg-blue-100 px-1 py-0.2 text-[9px] font-bold text-blue-700 dark:bg-blue-900/60 dark:text-blue-300">
+                {currentUser.rol}
+              </span>
 
-            {/* Change Password */}
-            <button
-              onClick={onOpenChangePassword}
-              title="Cambiar mi contraseña"
-              className="ml-1 rounded p-1 text-slate-400 hover:bg-slate-200 hover:text-slate-700 dark:hover:bg-slate-700 dark:hover:text-white"
-            >
-              <Key className="h-3.5 w-3.5" />
-            </button>
+              {/* Change Password */}
+              <button
+                onClick={onOpenChangePassword}
+                title="Cambiar mi contraseña personal"
+                className="ml-1 flex items-center space-x-1 rounded px-1.5 py-0.5 text-slate-500 hover:bg-slate-200 hover:text-slate-800 transition dark:hover:bg-slate-700 dark:hover:text-white"
+              >
+                <Key className="h-3 w-3 text-slate-500" />
+                <span className="text-[10px] font-medium hidden sm:inline">Clave</span>
+              </button>
+            </div>
 
-            {/* Logout */}
+            {/* Explicit Salir / Cerrar Sesión Button */}
             <button
               onClick={onLogout}
-              title="Cerrar sesión"
-              className="rounded p-1 text-rose-500 hover:bg-rose-50 hover:text-rose-700 dark:hover:bg-rose-950/40"
+              title="Salir y volver a la pantalla de ingreso con usuario y contraseña"
+              className="inline-flex items-center space-x-1 rounded-md border border-rose-200 bg-rose-50 px-2.5 py-1.5 text-xs font-bold text-rose-700 shadow-sm hover:bg-rose-100 hover:border-rose-300 transition active:scale-95 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-300 dark:hover:bg-rose-900/60"
             >
-              <LogOut className="h-3.5 w-3.5" />
+              <LogOut className="h-3.5 w-3.5 text-rose-600 dark:text-rose-400" />
+              <span>Salir</span>
             </button>
           </div>
         )}
