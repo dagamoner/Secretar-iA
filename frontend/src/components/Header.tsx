@@ -14,6 +14,7 @@ import {
   Key,
   Shield,
   CheckCircle2,
+  BarChart3,
 } from "lucide-react";
 import { getExcelExportUrl } from "@/lib/api";
 
@@ -31,6 +32,7 @@ interface HeaderProps {
   onLogout: () => void;
   onOpenChangePassword: () => void;
   onExportExcel?: () => void;
+  onOpenDashboard?: () => void;
 }
 
 export function Header({
@@ -47,6 +49,7 @@ export function Header({
   onLogout,
   onOpenChangePassword,
   onExportExcel,
+  onOpenDashboard,
 }: HeaderProps) {
   const exportUrl = getExcelExportUrl(currentAreaId);
   const [isExporting, setIsExporting] = useState(false);
@@ -169,6 +172,18 @@ export function Header({
               <span className="hidden sm:inline">Salir</span>
             </button>
           </div>
+        )}
+
+        {/* Interactive Movements Dashboard */}
+        {onOpenDashboard && (
+          <button
+            onClick={onOpenDashboard}
+            className="inline-flex items-center space-x-1.5 rounded-lg border border-blue-200 bg-blue-50/70 px-2.5 py-1.5 text-xs font-bold text-blue-700 shadow-2xs hover:bg-blue-100 hover:border-blue-300 transition active:scale-95 cursor-pointer dark:border-blue-900/60 dark:bg-blue-950/40 dark:text-blue-300 dark:hover:bg-blue-900/60"
+            title="Abrir Dashboard interactivo de movimientos y flujo documental (D)"
+          >
+            <BarChart3 className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+            <span>Dashboard</span>
+          </button>
         )}
 
         {/* Export to Excel */}

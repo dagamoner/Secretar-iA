@@ -10,6 +10,7 @@ interface ShortcutHandlers {
   onSelectPrevRow?: () => void;
   onEscape?: () => void;
   onToggleHelp?: () => void;
+  onToggleDashboard?: () => void;
 }
 
 export function useKeyboardShortcuts({
@@ -20,6 +21,7 @@ export function useKeyboardShortcuts({
   onSelectPrevRow,
   onEscape,
   onToggleHelp,
+  onToggleDashboard,
 }: ShortcutHandlers) {
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -56,6 +58,13 @@ export function useKeyboardShortcuts({
       if (e.key.toLowerCase() === "n" || (e.altKey && e.key.toLowerCase() === "n")) {
         e.preventDefault();
         onNewDocument?.();
+        return;
+      }
+
+      // Shortcut: Toggle Movements Dashboard (d or Alt+D)
+      if (e.key.toLowerCase() === "d" || (e.altKey && e.key.toLowerCase() === "d")) {
+        e.preventDefault();
+        onToggleDashboard?.();
         return;
       }
 
@@ -96,5 +105,6 @@ export function useKeyboardShortcuts({
     onSelectPrevRow,
     onEscape,
     onToggleHelp,
+    onToggleDashboard,
   ]);
 }

@@ -792,6 +792,69 @@ export async function dbRegistrarMovimiento(data: any): Promise<Movimiento> {
   };
 }
 
+export async function dbGetMovimientosRecientes(
+  areaId: number,
+  limit = 100
+): Promise<(Movimiento & { numero_expediente?: string; iniciador_caratula?: string })[]> {
+  const client = getDbClient();
+  if (!client) {
+    const movs = memoryMovimientos
+      .filter((m) => m.area_id === areaId)
+      .slice(0, limit);
+    return movs.map((m) => {
+      const doc = memoryDocs.find((d) => d.id === m.documento_id);
+      return {
+        ...m,
+        numero_expediente: doc?.numero_expediente,
+        iniciador_caratula: doc?.iniciador_caratula,
+      };
+    });
+  }
+
+  try {
+    const rows = await client`
+      SELECT 
+        m.*,
+        d.numero_expediente,
+        d.iniciador_caratula
+      FROM movimientos m
+      LEFT JOIN documentos d ON m.documento_id = d.id
+      WHERE m.area_id = ${areaId}
+      ORDER BY m.fecha_hora DESC
+      LIMIT ${limit};
+    `;
+
+    return rows.map((r: any) => {
+      const fh = r.fecha_hora ? new Date(r.fecha_hora) : new Date();
+      const hc = fh.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
+      const ff = fh.toLocaleDateString("es-AR") + " " + hc;
+      return {
+        id: r.id,
+        documento_id: r.documento_id,
+        area_id: r.area_id,
+        usuario_id: r.usuario_id,
+        usuario_nombre: r.usuario_nombre,
+        estado_anterior: r.estado_anterior,
+        estado_nuevo: r.estado_nuevo,
+        destino_anterior: r.destino_anterior,
+        destino_nuevo: r.destino_nuevo,
+        portador_anterior: r.portador_anterior,
+        portador_nuevo: r.portador_nuevo,
+        fojas_agregadas: r.fojas_agregadas,
+        observacion: r.observacion,
+        fecha_hora: fh.toISOString(),
+        hora_corta: hc,
+        fecha_formateada: ff,
+        numero_expediente: r.numero_expediente,
+        iniciador_caratula: r.iniciador_caratula,
+      };
+    });
+  } catch (error) {
+    console.error("Error in dbGetMovimientosRecientes:", error);
+    return [];
+  }
+}
+
 // -------------------------------------------------------------
 // ADMINISTRACIÓN: ÁREAS, USUARIOS, DESTINOS Y BATCH IMPORT (ETL)
 // -------------------------------------------------------------

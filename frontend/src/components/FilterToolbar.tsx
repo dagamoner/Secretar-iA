@@ -2,7 +2,7 @@
 
 import React, { useRef, useEffect } from "react";
 import { FilterState } from "@/types";
-import { Search, X, RotateCcw } from "lucide-react";
+import { Search, X, RotateCcw, BarChart3 } from "lucide-react";
 
 interface FilterToolbarProps {
   filters: FilterState;
@@ -21,6 +21,7 @@ interface FilterToolbarProps {
     urgentes: number;
     misTramites: number;
   };
+  onOpenDashboard?: () => void;
 }
 
 export function FilterToolbar({
@@ -32,6 +33,7 @@ export function FilterToolbar({
   focusSearchTrigger,
   currentUserName,
   stats,
+  onOpenDashboard,
 }: FilterToolbarProps) {
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -185,7 +187,7 @@ export function FilterToolbar({
                   updateField("portador", currentUserName);
                 }
               }}
-              className={`flex items-center space-x-1.5 rounded-lg border px-2.5 py-1 text-xs font-bold transition active:scale-95 shrink-0 ml-auto ${
+              className={`flex items-center space-x-1.5 rounded-lg border px-2.5 py-1 text-xs font-bold transition active:scale-95 shrink-0 ${
                 filters.portador === currentUserName
                   ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
                   : "bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800"
@@ -198,6 +200,19 @@ export function FilterToolbar({
                   {stats.misTramites}
                 </span>
               )}
+            </button>
+          )}
+
+          {/* Quick Dashboard Pill */}
+          {onOpenDashboard && (
+            <button
+              type="button"
+              onClick={onOpenDashboard}
+              className="flex items-center space-x-1.5 rounded-lg border border-blue-300 bg-blue-100/70 px-2.5 py-1 text-xs font-black text-blue-800 transition active:scale-95 shrink-0 ml-auto hover:bg-blue-200 dark:border-blue-800 dark:bg-blue-950/60 dark:text-blue-300 dark:hover:bg-blue-900/60 shadow-2xs"
+              title="Abrir Dashboard interactivo con gráficos de movimientos (D)"
+            >
+              <BarChart3 className="h-3.5 w-3.5 text-blue-700 dark:text-blue-400" />
+              <span>Ver Gráficos & Flujo</span>
             </button>
           )}
         </div>

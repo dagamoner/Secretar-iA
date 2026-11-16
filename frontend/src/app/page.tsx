@@ -21,6 +21,7 @@ import { KeyboardShortcutsHelp } from "@/components/KeyboardShortcutsHelp";
 import { AdminModal } from "@/components/AdminModal";
 import { LoginScreen } from "@/components/LoginScreen";
 import { ChangePasswordModal } from "@/components/ChangePasswordModal";
+import { MovementDashboardModal } from "@/components/MovementDashboardModal";
 import { normalizeSearchText } from "@/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
 import * as XLSX from "xlsx";
@@ -42,6 +43,7 @@ export default function HomePage() {
   const [isNewDocOpen, setIsNewDocOpen] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
+  const [isDashboardOpen, setIsDashboardOpen] = useState(false);
 
   // Keyboard navigation & search trigger state
   const [selectedIndex, setSelectedIndex] = useState<number>(0);
@@ -240,8 +242,10 @@ export default function HomePage() {
       setIsDrawerOpen(false);
       setIsNewDocOpen(false);
       setIsHelpOpen(false);
+      setIsDashboardOpen(false);
     },
     onToggleHelp: () => setIsHelpOpen((prev) => !prev),
+    onToggleDashboard: () => setIsDashboardOpen((prev) => !prev),
   });
 
   // Loading screen while checking authentication session
@@ -381,6 +385,7 @@ export default function HomePage() {
         }}
         onOpenChangePassword={() => setIsChangePasswordOpen(true)}
         onExportExcel={handleExportExcel}
+        onOpenDashboard={() => setIsDashboardOpen(true)}
       />
 
       {/* Instant Filter Bar */}
@@ -393,6 +398,7 @@ export default function HomePage() {
         focusSearchTrigger={focusSearchTrigger}
         currentUserName={currentUser?.nombre_completo}
         stats={stats}
+        onOpenDashboard={() => setIsDashboardOpen(true)}
       />
 
       {/* Dense High-Speed Document Grid */}
@@ -471,6 +477,25 @@ export default function HomePage() {
           isOpen={isChangePasswordOpen}
           onClose={() => setIsChangePasswordOpen(false)}
           currentUser={currentUser}
+        />
+      )}
+
+      {/* Interactive Movements Dashboard */}
+      {isDashboardOpen && (
+        <MovementDashboardModal
+          isOpen={isDashboardOpen}
+          onClose={() => setIsDashboardOpen(false)}
+          documentos={todosLosDocumentos}
+          onApplyFilter={(newFilters) => {
+            setFilters((prev) => ({
+              ...prev,
+              ...newFilters,
+            }));
+          }}
+          onOpenMovementDrawer={(doc) => {
+            setSelectedDoc(doc);
+            setIsDrawerOpen(true);
+          }}
         />
       )}
     </div>

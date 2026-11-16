@@ -14,6 +14,12 @@ export async function fetchCatalogosDestinos(areaId: number): Promise<CatalogoDe
   return res.json();
 }
 
+export async function fetchMovimientosRecientes(areaId: number, limit = 100): Promise<(Movimiento & { numero_expediente?: string; iniciador_caratula?: string })[]> {
+  const res = await fetch(`${API_BASE}/movimientos?area_id=${areaId}&limit=${limit}`);
+  if (!res.ok) throw new Error("Error al obtener movimientos recientes");
+  return res.json();
+}
+
 export async function fetchUsuarios(areaId: number): Promise<Usuario[]> {
   const res = await fetch(`${API_BASE}/catalogos/usuarios?area_id=${areaId}`);
   if (!res.ok) throw new Error("Error al obtener usuarios");
