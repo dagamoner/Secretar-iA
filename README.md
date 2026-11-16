@@ -45,6 +45,40 @@
 
 ---
 
+## 🌐 Despliegue en la Nube con Vercel & Vercel Postgres (Colaborativo)
+
+El sistema soporta una arquitectura híbrida: además del despliegue Docker On-Premise, está preparado para desplegarse **100% Serverless en Vercel con Vercel Postgres (Neon)** para que cualquier colaborador pueda ingresar vía web y ver en vivo lo que hace cada uno sobre la base de datos compartida.
+
+### 1. Vincular el repositorio local a GitHub
+En una terminal dentro de la carpeta del proyecto:
+```bash
+# Si aún no creaste el repositorio en tu cuenta de GitHub:
+# 1. Crea un nuevo repositorio en https://github.com/new llamado "Secretar-iA"
+# 2. Vincula el remote y empuja la rama main:
+git remote add origin https://github.com/TU_USUARIO/Secretar-iA.git
+git branch -M main
+git push -u origin main
+```
+
+### 2. Conectar el proyecto en Vercel
+1. Ingresa a [Vercel Dashboard](https://vercel.com/dashboard) y haz clic en **"Add New..." > "Project"**.
+2. Selecciona tu repositorio de GitHub `Secretar-iA`.
+3. En la configuración del proyecto:
+   - **Framework Preset:** `Next.js`
+   - **Root Directory:** `./` (o `./frontend`)
+4. Haz clic en **Deploy**.
+
+### 3. Crear y Conectar la Database de Vercel (Vercel Postgres / Neon)
+1. Dentro del proyecto en el panel de Vercel, ve a la pestaña **Storage**.
+2. Haz clic en **Create Database** y selecciona **Postgres** (potenciado por Neon).
+3. Selecciona un nombre (ej. `secretaria-db`) y una región.
+4. Haz clic en **Connect Project**: Vercel inyectará automáticamente las variables de entorno (`POSTGRES_URL`, `DATABASE_URL`, etc.).
+5. Redeploya el proyecto o abre la URL:
+   - Visita `https://tu-proyecto.vercel.app/api/init-db` una única vez (o al primer inicio) para crear automáticamente las tablas y poblar los datos de prueba iniciales.
+   - ¡Listo! Todo el equipo que ingrese a la URL de Vercel estará trabajando sobre la misma base de datos compartida, visualizando en tiempo real la creación de trámites, fojas y pases con auditoría visible.
+
+---
+
 ## 🚀 Despliegue Rápido On-Premise con Docker
 
 En el servidor institucional interno:
