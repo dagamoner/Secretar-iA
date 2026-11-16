@@ -61,9 +61,9 @@ let memoryDocs: Documento[] = [
     foja_actual: 34,
     prioridad: "URGENTE",
     fecha_ingreso: new Date(Date.now() - 172800000).toISOString(),
-    ultimo_movimiento_at: new Date(Date.now() - 4500000).toISOString(),
-    ultimo_movimiento_hora_corta: "12:15",
-    ultimo_movimiento_formateado: "16/11/2026 12:15",
+    ultimo_movimiento_at: null,
+    ultimo_movimiento_hora_corta: null,
+    ultimo_movimiento_formateado: null,
     creado_por_id: 1,
     created_at: new Date(Date.now() - 172800000).toISOString(),
     updated_at: new Date().toISOString(),
@@ -454,20 +454,24 @@ export async function dbGetDocumentos(areaId: number, filters?: Partial<FilterSt
     if (filters?.prioridad && filters.prioridad !== "TODOS") {
       list = list.filter((d) => d.prioridad === filters.prioridad);
     }
-    return [...list].sort((a, b) => new Date(b.ultimo_movimiento_at).getTime() - new Date(a.ultimo_movimiento_at).getTime());
+    return [...list].sort((a, b) => {
+      const timeB = b.ultimo_movimiento_at ? new Date(b.ultimo_movimiento_at).getTime() : (b.fecha_ingreso ? new Date(b.fecha_ingreso).getTime() : 0);
+      const timeA = a.ultimo_movimiento_at ? new Date(a.ultimo_movimiento_at).getTime() : (a.fecha_ingreso ? new Date(a.fecha_ingreso).getTime() : 0);
+      return timeB - timeA;
+    });
   }
 
   try {
     const rows = await client`
       SELECT * FROM documentos 
       WHERE area_id = ${areaId}
-      ORDER BY ultimo_movimiento_at DESC 
+      ORDER BY COALESCE(ultimo_movimiento_at, fecha_ingreso) DESC, id DESC 
       LIMIT 15000;
     `;
     let result = rows.map((r: any) => {
-      const ult = r.ultimo_movimiento_at ? new Date(r.ultimo_movimiento_at) : new Date();
-      const hora = ult.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
-      const fecha = ult.toLocaleDateString("es-AR") + " " + hora;
+      const ult = r.ultimo_movimiento_at ? new Date(r.ultimo_movimiento_at) : null;
+      const hora = ult ? ult.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" }) : null;
+      const fecha = ult ? ult.toLocaleDateString("es-AR") + " " + hora : null;
       return {
         id: r.id,
         area_id: r.area_id,
@@ -481,8 +485,8 @@ export async function dbGetDocumentos(areaId: number, filters?: Partial<FilterSt
         portador_actual: r.portador_actual,
         foja_actual: r.foja_actual,
         prioridad: r.prioridad,
-        fecha_ingreso: r.fecha_ingreso?.toISOString() || new Date().toISOString(),
-        ultimo_movimiento_at: ult.toISOString(),
+        fecha_ingreso: r.fecha_ingreso ? new Date(r.fecha_ingreso).toISOString() : new Date().toISOString(),
+        ultimo_movimiento_at: ult ? ult.toISOString() : null,
         ultimo_movimiento_hora_corta: hora,
         ultimo_movimiento_formateado: fecha,
         creado_por_id: r.creado_por_id,
@@ -547,7 +551,9 @@ export async function dbGetDocumentoDetalle(docId: number, areaId: number): Prom
     const docRows = await client`SELECT * FROM documentos WHERE id = ${docId} AND area_id = ${areaId};`;
     if (docRows.length === 0) return null;
     const r = docRows[0];
-    const ult = r.ultimo_movimiento_at ? new Date(r.ultimo_movimiento_at) : new Date();
+    const ult = r.ultimo_movimiento_at ? new Date(r.ultimo_movimiento_at) : null;
+    const ultHora = ult ? ult.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" }) : null;
+    const ultFecha = ult ? ult.toLocaleDateString("es-AR") + " " + ultHora : null;
 
     const movRows = await client`
       SELECT * FROM movimientos 
@@ -591,10 +597,10 @@ export async function dbGetDocumentoDetalle(docId: number, areaId: number): Prom
       portador_actual: r.portador_actual,
       foja_actual: r.foja_actual,
       prioridad: r.prioridad,
-      fecha_ingreso: r.fecha_ingreso?.toISOString() || new Date().toISOString(),
-      ultimo_movimiento_at: ult.toISOString(),
-      ultimo_movimiento_hora_corta: ult.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" }),
-      ultimo_movimiento_formateado: ult.toLocaleDateString("es-AR") + " " + ult.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" }),
+      fecha_ingreso: r.fecha_ingreso ? new Date(r.fecha_ingreso).toISOString() : new Date().toISOString(),
+      ultimo_movimiento_at: ult ? ult.toISOString() : null,
+      ultimo_movimiento_hora_corta: ultHora,
+      ultimo_movimiento_formateado: ultFecha,
       creado_por_id: r.creado_por_id,
       created_at: r.created_at?.toISOString() || new Date().toISOString(),
       updated_at: r.updated_at?.toISOString() || new Date().toISOString(),
@@ -655,6 +661,9 @@ export async function dbCreateDocumento(data: any): Promise<Documento> {
     return newDoc;
   }
 
+  const ultMov = data.ultimo_movimiento_at ? new Date(data.ultimo_movimiento_at).toISOString() : null;
+  const fIngreso = data.fecha_ingreso ? new Date(data.fecha_ingreso).toISOString() : now.toISOString();
+
   const res = await client`
     INSERT INTO documentos (
       area_id, numero_expediente, tipo_documento, anio, iniciador_caratula, 
@@ -664,7 +673,7 @@ export async function dbCreateDocumento(data: any): Promise<Documento> {
       ${data.area_id}, ${data.numero_expediente}, ${data.tipo_documento || 'EXPEDIENTE'}, ${data.anio || now.getFullYear()},
       ${data.iniciador_caratula}, ${data.extracto || null}, ${data.estado_actual || 'INICIADO'}, ${data.destino_actual || 'Mesa de Entradas'},
       ${data.portador_actual || 'Mesa de Entradas'}, ${data.foja_actual || 1}, ${data.prioridad || 'NORMAL'}, ${data.creado_por_id || null},
-      ${data.fecha_ingreso || now.toISOString()}, ${data.ultimo_movimiento_at || data.fecha_ingreso || now.toISOString()}
+      ${fIngreso}, ${ultMov}
     ) RETURNING *;
   `;
   const doc = res[0];
@@ -676,9 +685,25 @@ export async function dbCreateDocumento(data: any): Promise<Documento> {
     ) VALUES (
       ${doc.id}, ${doc.area_id}, ${data.creado_por_id || null}, ${data.creado_por_nombre || 'Mesa de Entradas'},
       ${doc.estado_actual}, ${doc.destino_actual}, ${doc.portador_actual}, ${doc.foja_actual},
-      ${data.observacion_inicial || 'Caratulación inicial'}, ${data.ultimo_movimiento_at || data.fecha_ingreso || now.toISOString()}
+      ${data.observacion_inicial || 'Caratulación e ingreso inicial'}, ${fIngreso}
     );
   `;
+
+  if (ultMov) {
+    await client`
+      INSERT INTO movimientos (
+        documento_id, area_id, usuario_id, usuario_nombre, estado_nuevo, 
+        destino_nuevo, portador_nuevo, fojas_agregadas, observacion, fecha_hora
+      ) VALUES (
+        ${doc.id}, ${doc.area_id}, ${data.creado_por_id || null}, ${data.creado_por_nombre || 'Mesa de Entradas'},
+        ${doc.estado_actual}, ${doc.destino_actual}, ${doc.portador_actual}, ${doc.foja_actual},
+        ${'Salida registrada hacia ' + (doc.destino_actual || 'ámbito correspondiente')}, ${ultMov}
+      );
+    `;
+  }
+
+  const ultMovHora = ultMov ? new Date(ultMov).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" }) : null;
+  const ultMovFormateado = ultMov ? new Date(ultMov).toLocaleDateString("es-AR") + " " + ultMovHora : null;
 
   return {
     id: doc.id,
@@ -693,10 +718,10 @@ export async function dbCreateDocumento(data: any): Promise<Documento> {
     portador_actual: doc.portador_actual,
     foja_actual: doc.foja_actual,
     prioridad: doc.prioridad,
-    fecha_ingreso: now.toISOString(),
-    ultimo_movimiento_at: now.toISOString(),
-    ultimo_movimiento_hora_corta: hora,
-    ultimo_movimiento_formateado: now.toLocaleDateString("es-AR") + " " + hora,
+    fecha_ingreso: fIngreso,
+    ultimo_movimiento_at: ultMov,
+    ultimo_movimiento_hora_corta: ultMovHora,
+    ultimo_movimiento_formateado: ultMovFormateado,
     creado_por_id: doc.creado_por_id,
     created_at: now.toISOString(),
     updated_at: now.toISOString(),
@@ -1031,7 +1056,7 @@ export async function dbImportarDocumentosBatch(
             foja_actual: Number(item.foja_actual) || 1,
             prioridad: item.prioridad?.toUpperCase() || "NORMAL",
             fecha_ingreso: item.fecha_ingreso,
-            ultimo_movimiento_at: item.ultimo_movimiento_at || item.fecha_ingreso,
+            ultimo_movimiento_at: item.ultimo_movimiento_at || null,
             creado_por_nombre: userName,
             observacion_inicial: item.observacion || "Migrado desde planilla Excel histórica.",
           });

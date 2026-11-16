@@ -59,9 +59,9 @@ export interface Documento {
   foja_actual: number;
   prioridad: string;
   fecha_ingreso: string;
-  ultimo_movimiento_at: string;
-  ultimo_movimiento_hora_corta: string;
-  ultimo_movimiento_formateado: string;
+  ultimo_movimiento_at?: string | null;
+  ultimo_movimiento_hora_corta?: string | null;
+  ultimo_movimiento_formateado?: string | null;
   creado_por_id?: number;
   created_at: string;
   updated_at: string;

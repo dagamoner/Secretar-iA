@@ -202,28 +202,73 @@ export function AdminModal({
         if (clean.includes("extracto") || clean.includes("sintesis") || clean.includes("resumen")) normalizedMap["extracto"] = col;
         if (clean.includes("estado")) normalizedMap["estado_actual"] = col;
         if (clean.includes("destino")) normalizedMap["destino_actual"] = col;
-        if (clean.includes("portador") || clean.includes("responsable")) normalizedMap["portador_actual"] = col;
+        if (clean.includes("portador") || clean.includes("responsable") || clean.includes("retiro")) normalizedMap["portador_actual"] = col;
         if (clean.includes("foja") || clean.includes("folios")) normalizedMap["foja_actual"] = col;
         if (clean.includes("prioridad")) normalizedMap["prioridad"] = col;
         if (clean.includes("tipo")) normalizedMap["tipo_documento"] = col;
         if (clean.includes("observacion") || clean.includes("nota")) normalizedMap["observacion"] = col;
+        if (clean === "dia" || clean === "day") normalizedMap["dia"] = col;
+        if (clean === "mes" || clean === "month") normalizedMap["mes"] = col;
+        if (clean === "anio" || clean === "ano" || clean === "year") normalizedMap["anio_ingreso"] = col;
+        if (clean.includes("salida") || clean === "fecha" || clean.startsWith("fechasalida")) normalizedMap["fecha_salida"] = col;
+        if (clean.includes("entrada") || clean.includes("ingreso") || clean.startsWith("fechaentrada")) normalizedMap["fecha_ingreso"] = col;
       });
 
       const colExp = normalizedMap["numero_expediente"] || excelCols[0];
       const colCar = normalizedMap["iniciador_caratula"] || excelCols[1];
 
-      const items = excelRows.map((row) => ({
-        numero_expediente: String(row[colExp] || "").trim(),
-        iniciador_caratula: String(row[colCar] || "Sin carátula especificada").trim(),
-        extracto: normalizedMap["extracto"] ? String(row[normalizedMap["extracto"]] || "").trim() : undefined,
-        estado_actual: normalizedMap["estado_actual"] ? String(row[normalizedMap["estado_actual"]] || "INICIADO").trim() : "INICIADO",
-        destino_actual: normalizedMap["destino_actual"] ? String(row[normalizedMap["destino_actual"]] || "Mesa de Entradas").trim() : "Mesa de Entradas",
-        portador_actual: normalizedMap["portador_actual"] ? String(row[normalizedMap["portador_actual"]] || "Mesa de Entradas").trim() : "Mesa de Entradas",
-        foja_actual: normalizedMap["foja_actual"] ? Number(row[normalizedMap["foja_actual"]]) || 1 : 1,
-        prioridad: normalizedMap["prioridad"] ? String(row[normalizedMap["prioridad"]] || "NORMAL").trim() : "NORMAL",
-        tipo_documento: normalizedMap["tipo_documento"] ? String(row[normalizedMap["tipo_documento"]] || "EXPEDIENTE").trim() : "EXPEDIENTE",
-        observacion: normalizedMap["observacion"] ? String(row[normalizedMap["observacion"]] || "").trim() : "Importación histórica desde planilla Excel",
-      }));
+      const items = excelRows.map((row) => {
+        let fIngreso: string | undefined = undefined;
+        if (normalizedMap["dia"] && normalizedMap["mes"] && normalizedMap["anio_ingreso"]) {
+          const d = Number(row[normalizedMap["dia"]]) || 1;
+          const m = Number(row[normalizedMap["mes"]]) || 1;
+          const y = Number(row[normalizedMap["anio_ingreso"]]) || new Date().getFullYear();
+          fIngreso = new Date(Date.UTC(y, m - 1, d, 9, 0, 0)).toISOString();
+        } else if (normalizedMap["fecha_ingreso"] && row[normalizedMap["fecha_ingreso"]]) {
+          const val = row[normalizedMap["fecha_ingreso"]];
+          if (typeof val === "number" && val > 20000) {
+            const parsed = XLSX.SSF.parse_date_code(val);
+            fIngreso = new Date(Date.UTC(parsed.y, parsed.m - 1, parsed.d, 9, 0, 0)).toISOString();
+          } else {
+            try { fIngreso = new Date(val).toISOString(); } catch {}
+          }
+        }
+
+        let fSalida: string | undefined = undefined;
+        if (normalizedMap["fecha_salida"] && row[normalizedMap["fecha_salida"]]) {
+          const val = row[normalizedMap["fecha_salida"]];
+          if (typeof val === "number" && val > 20000) {
+            const parsed = XLSX.SSF.parse_date_code(val);
+            fSalida = new Date(Date.UTC(parsed.y, parsed.m - 1, parsed.d, 12, 0, 0)).toISOString();
+          } else if (String(val).trim()) {
+            const parts = String(val).trim().split(/[\/\-]/);
+            if (parts.length === 3) {
+              const d = parseInt(parts[0]) || 1;
+              const m = parseInt(parts[1]) || 1;
+              let y = parseInt(parts[2]) || 2025;
+              if (y < 100) y += 2000;
+              fSalida = new Date(Date.UTC(y, m - 1, d, 12, 0, 0)).toISOString();
+            }
+          }
+        }
+
+        return {
+          numero_expediente: String(row[colExp] || "").trim(),
+          iniciador_caratula: String(row[colCar] || "Sin carátula especificada").trim(),
+          extracto: normalizedMap["extracto"] ? String(row[normalizedMap["extracto"]] || "").trim() : undefined,
+          estado_actual: normalizedMap["estado_actual"]
+            ? String(row[normalizedMap["estado_actual"]] || (fSalida ? "FIRMADO" : "DESPACHO")).trim()
+            : fSalida ? "FIRMADO" : "DESPACHO",
+          destino_actual: normalizedMap["destino_actual"] ? String(row[normalizedMap["destino_actual"]] || (fSalida ? "Archivo / Destino" : "Secretaría Privada")).trim() : (fSalida ? "Archivo / Destino" : "Secretaría Privada"),
+          portador_actual: normalizedMap["portador_actual"] ? String(row[normalizedMap["portador_actual"]] || (fSalida ? "Portador" : "Secretaría Privada")).trim() : (fSalida ? "Portador" : "Secretaría Privada"),
+          foja_actual: normalizedMap["foja_actual"] ? Number(row[normalizedMap["foja_actual"]]) || 1 : 1,
+          prioridad: normalizedMap["prioridad"] ? String(row[normalizedMap["prioridad"]] || "NORMAL").trim() : "NORMAL",
+          tipo_documento: normalizedMap["tipo_documento"] ? String(row[normalizedMap["tipo_documento"]] || "EXPEDIENTE").trim() : "EXPEDIENTE",
+          fecha_ingreso: fIngreso,
+          ultimo_movimiento_at: fSalida,
+          observacion: normalizedMap["observacion"] ? String(row[normalizedMap["observacion"]] || "").trim() : "Importación histórica desde planilla Excel",
+        };
+      });
 
       const res = await importarExcelBatch(currentAreaId, items, "Importador Web Excel");
       setImportResult(`✔ Se importaron exitosamente ${res.importados} expedientes a la base de datos.`);
