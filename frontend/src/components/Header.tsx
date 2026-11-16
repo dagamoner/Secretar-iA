@@ -18,6 +18,7 @@ interface HeaderProps {
   onOpenAdmin: () => void;
   onLogout: () => void;
   onOpenChangePassword: () => void;
+  onExportExcel?: () => void;
 }
 
 export function Header({
@@ -33,6 +34,7 @@ export function Header({
   onOpenAdmin,
   onLogout,
   onOpenChangePassword,
+  onExportExcel,
 }: HeaderProps) {
   const exportUrl = getExcelExportUrl(currentAreaId);
 
@@ -142,15 +144,14 @@ export function Header({
         )}
 
         {/* Export to Excel */}
-        <a
-          href={exportUrl}
-          download
-          className="inline-flex items-center space-x-1 rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50 transition dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
-          title="Descargar planilla Excel de la vista actual"
+        <button
+          onClick={onExportExcel || (() => window.open(exportUrl, "_blank"))}
+          className="inline-flex items-center space-x-1.5 rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50 transition active:scale-95 cursor-pointer dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+          title="Descargar planilla Excel con la trazabilidad completa"
         >
           <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-600" />
           <span>Exportar Excel</span>
-        </a>
+        </button>
 
         {/* Administration & ETL Settings - EXCLUSIVO PARA ADMINISTRADOR GENERAL */}
         {currentUser?.rol === "ADMIN" && (

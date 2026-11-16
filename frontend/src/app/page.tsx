@@ -23,6 +23,7 @@ import { LoginScreen } from "@/components/LoginScreen";
 import { ChangePasswordModal } from "@/components/ChangePasswordModal";
 import { normalizeSearchText } from "@/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
+import * as XLSX from "xlsx";
 
 export default function HomePage() {
   const queryClient = useQueryClient();
@@ -244,6 +245,81 @@ export default function HomePage() {
     );
   }
 
+  // Instant Export to Excel matching the exact layout of the office
+  const handleExportExcel = () => {
+    const listToExport = documentos.length > 0 ? documentos : todosLosDocumentos;
+    const exportRows = listToExport.map((d) => {
+      let fIngreso = "";
+      let dia = "";
+      let mes = "";
+      let anioIngreso = "";
+      if (d.fecha_ingreso) {
+        try {
+          const dt = new Date(d.fecha_ingreso);
+          dia = String(dt.getDate());
+          mes = String(dt.getMonth() + 1);
+          anioIngreso = String(dt.getFullYear());
+          fIngreso = dt.toLocaleDateString("es-AR");
+        } catch {}
+      }
+
+      let fSalida = "";
+      if (d.ultimo_movimiento_at) {
+        try {
+          const dt = new Date(d.ultimo_movimiento_at);
+          fSalida = dt.toLocaleDateString("es-AR");
+        } catch {}
+      }
+
+      let ambitoOrigen = "";
+      let caratulaLimpia = d.iniciador_caratula || "";
+      const matchAmb = caratulaLimpia.match(/^\[(.*?)\]\s*(.*)$/);
+      if (matchAmb) {
+        ambitoOrigen = matchAmb[1];
+        caratulaLimpia = matchAmb[2];
+      }
+
+      return {
+        DIA: dia,
+        MES: mes,
+        AÑO: anioIngreso,
+        "F. ENTRADA": fIngreso,
+        "N° EXPEDIENTE": d.numero_expediente,
+        TIPO: d.tipo_documento,
+        "AMBITO ORIGEN": ambitoOrigen,
+        "CARATULADO / RESUMEN": caratulaLimpia,
+        ESTADO: d.estado_actual,
+        "F. SALIDA": fSalida,
+        "AMBITO DESTINO": d.destino_actual,
+        "PORTADOR / RETIRO": d.portador_actual,
+        FOJAS: d.foja_actual,
+        PRIORIDAD: d.prioridad,
+      };
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(exportRows);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Expedientes");
+    worksheet["!cols"] = [
+      { wch: 6 },
+      { wch: 6 },
+      { wch: 6 },
+      { wch: 12 },
+      { wch: 25 },
+      { wch: 14 },
+      { wch: 22 },
+      { wch: 60 },
+      { wch: 14 },
+      { wch: 12 },
+      { wch: 30 },
+      { wch: 25 },
+      { wch: 8 },
+      { wch: 12 },
+    ];
+    const todayStr = new Date().toISOString().split("T")[0];
+    XLSX.writeFile(workbook, `Secretaria_Privada_Expedientes_${todayStr}.xlsx`);
+  };
+
   return (
     <div className="flex h-screen flex-col bg-white text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100">
       {/* Header Bar */}
@@ -276,6 +352,7 @@ export default function HomePage() {
           }
         }}
         onOpenChangePassword={() => setIsChangePasswordOpen(true)}
+        onExportExcel={handleExportExcel}
       />
 
       {/* Instant Filter Bar */}
