@@ -152,15 +152,17 @@ export function Header({
           <span>Exportar Excel</span>
         </a>
 
-        {/* Administration & ETL Settings */}
-        <button
-          onClick={onOpenAdmin}
-          className="inline-flex items-center space-x-1 rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50 transition dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
-          title="Administración de Áreas, Oficinas y Migrador Excel"
-        >
-          <Settings className="h-3.5 w-3.5 text-blue-600" />
-          <span>Configuración & ETL</span>
-        </button>
+        {/* Administration & ETL Settings - EXCLUSIVO PARA ADMINISTRADOR GENERAL */}
+        {currentUser?.rol === "ADMIN" && (
+          <button
+            onClick={onOpenAdmin}
+            className="inline-flex items-center space-x-1.5 rounded-md border border-purple-200 bg-purple-50 px-2.5 py-1.5 text-xs font-bold text-purple-700 shadow-sm hover:bg-purple-100 hover:border-purple-300 transition dark:border-purple-900/60 dark:bg-purple-950/40 dark:text-purple-300 dark:hover:bg-purple-900/60"
+            title="Panel Exclusivo de Administración: Áreas, Destinos, Operadores e Importador ETL"
+          >
+            <Settings className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
+            <span>Configuración & ETL</span>
+          </button>
+        )}
 
         {/* Shortcuts Help */}
         <button

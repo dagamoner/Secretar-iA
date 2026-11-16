@@ -292,21 +292,23 @@ export default function HomePage() {
         onClose={() => setIsHelpOpen(false)}
       />
 
-      {/* Administration, Organization & Excel ETL Modal */}
-      <AdminModal
-        isOpen={isAdminOpen}
-        onClose={() => setIsAdminOpen(false)}
-        areas={areas}
-        currentAreaId={currentAreaId}
-        usuarios={usuarios}
-        catalogosDestinos={catalogosDestinos}
-        onRefetchData={() => {
-          queryClient.invalidateQueries({ queryKey: ["areas"] });
-          queryClient.invalidateQueries({ queryKey: ["usuarios", currentAreaId] });
-          queryClient.invalidateQueries({ queryKey: ["catalogosDestinos", currentAreaId] });
-          queryClient.invalidateQueries({ queryKey: ["documentos", currentAreaId] });
-        }}
-      />
+      {/* Administration, Organization & Excel ETL Modal (Exclusivo Administrador) */}
+      {isAdminOpen && currentUser?.rol === "ADMIN" && (
+        <AdminModal
+          isOpen={isAdminOpen}
+          onClose={() => setIsAdminOpen(false)}
+          areas={areas}
+          currentAreaId={currentAreaId}
+          usuarios={usuarios}
+          catalogosDestinos={catalogosDestinos}
+          onRefetchData={() => {
+            queryClient.invalidateQueries({ queryKey: ["areas"] });
+            queryClient.invalidateQueries({ queryKey: ["usuarios", currentAreaId] });
+            queryClient.invalidateQueries({ queryKey: ["catalogosDestinos", currentAreaId] });
+            queryClient.invalidateQueries({ queryKey: ["documentos", currentAreaId] });
+          }}
+        />
+      )}
 
       {/* Change Password Modal */}
       {isChangePasswordOpen && currentUser && (
