@@ -67,9 +67,9 @@ export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
         {/* Quick User Chips */}
         <div className="mt-6 rounded-xl border border-blue-100 bg-blue-50/50 p-3 text-center dark:border-blue-950 dark:bg-blue-950/30">
           <span className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-2">
-            Acceso Rápido de Secretaría:
+            Acceso Rápido al Sistema:
           </span>
-          <div className="flex items-center justify-center gap-2">
+          <div className="flex flex-wrap items-center justify-center gap-2">
             <button
               type="button"
               onClick={() => setPredefinedUser("vaninapardo")}
@@ -92,6 +92,17 @@ export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
             >
               👩‍💼 Betiana Salinas
             </button>
+            <button
+              type="button"
+              onClick={() => setPredefinedUser("admin")}
+              className={`rounded-lg px-3 py-1.5 text-xs font-bold transition shadow-xs ${
+                username === "admin"
+                  ? "bg-purple-600 text-white"
+                  : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-100 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700"
+              }`}
+            >
+              🛠️ Administrador
+            </button>
           </div>
         </div>
 
@@ -113,7 +124,7 @@ export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
               <input
                 type="text"
                 required
-                placeholder="vaninapardo o betianasalinas"
+                placeholder="vaninapardo, betianasalinas o admin"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 className="w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 py-2 text-xs text-slate-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white"

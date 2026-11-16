@@ -34,8 +34,9 @@ let memoryAreas: Area[] = [
 ];
 
 let memoryUsers: Usuario[] = [
-  { id: 1, area_id: 1, username: "vaninapardo", nombre_completo: "Vanina Pardo", rol: "OPERADOR", activo: true, password_hash: hashPassword("vanina2026") },
-  { id: 2, area_id: 1, username: "betianasalinas", nombre_completo: "Betiana Salinas", rol: "OPERADOR", activo: true, password_hash: hashPassword("betiana2026") },
+  { id: 1, area_id: 1, username: "admin", nombre_completo: "Administrador General", rol: "ADMIN", activo: true, password_hash: hashPassword("admin2026") },
+  { id: 2, area_id: 1, username: "vaninapardo", nombre_completo: "Vanina Pardo", rol: "OPERADOR", activo: true, password_hash: hashPassword("vanina2026") },
+  { id: 3, area_id: 1, username: "betianasalinas", nombre_completo: "Betiana Salinas", rol: "OPERADOR", activo: true, password_hash: hashPassword("betiana2026") },
 ];
 
 let memoryDestinos: CatalogoDestino[] = [
@@ -322,18 +323,21 @@ export async function ensureDbInitialized() {
     // Ensure password_hash column exists
     await client`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS password_hash VARCHAR(255);`;
 
+    const hashAdmin = hashPassword("admin2026");
     const hashVanina = hashPassword("vanina2026");
     const hashBetiana = hashPassword("betiana2026");
 
-    // Ensure Vanina Pardo and Betiana Salinas exist in PostgreSQL with initial passwords
+    // Ensure Admin, Vanina Pardo and Betiana Salinas exist in PostgreSQL with initial passwords
     await client`
       INSERT INTO usuarios (area_id, username, nombre_completo, rol, activo, password_hash)
       VALUES 
+        (1, 'admin', 'Administrador General', 'ADMIN', true, ${hashAdmin}),
         (1, 'vaninapardo', 'Vanina Pardo', 'OPERADOR', true, ${hashVanina}),
         (1, 'betianasalinas', 'Betiana Salinas', 'OPERADOR', true, ${hashBetiana})
       ON CONFLICT (username) DO UPDATE 
       SET 
         nombre_completo = EXCLUDED.nombre_completo,
+        rol = EXCLUDED.rol,
         password_hash = COALESCE(usuarios.password_hash, EXCLUDED.password_hash),
         activo = true;
     `;

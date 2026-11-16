@@ -108,7 +108,13 @@ export function Header({
             <div className="flex items-center space-x-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs dark:border-slate-700 dark:bg-slate-800">
               <span className="font-semibold text-slate-500 dark:text-slate-400">👤</span>
               <span className="font-bold text-slate-900 dark:text-white">{currentUser.nombre_completo}</span>
-              <span className="rounded bg-blue-100 px-1 py-0.2 text-[9px] font-bold text-blue-700 dark:bg-blue-900/60 dark:text-blue-300">
+              <span
+                className={`rounded px-1.5 py-0.5 text-[9px] font-bold ${
+                  currentUser.rol === "ADMIN"
+                    ? "bg-purple-100 text-purple-700 dark:bg-purple-900/60 dark:text-purple-300 border border-purple-200 dark:border-purple-800"
+                    : "bg-blue-100 text-blue-700 dark:bg-blue-900/60 dark:text-blue-300"
+                }`}
+              >
                 {currentUser.rol}
               </span>
 
