@@ -24,14 +24,14 @@ def seed_database():
 
         print("Poblando Áreas iniciales...")
         area_mesa = Area(
-            nombre="Mesa de Entradas General",
-            codigo="MEG",
-            descripcion="Recepción, caratulación y derivación general de trámites, expedientes y notas."
+            nombre="Secretaría Privada - Ministerio de Gobierno",
+            codigo="SPMG",
+            descripcion="Recepción, despacho y seguimiento de expedientes, notas y resoluciones de la Secretaría Privada."
         )
         area_despacho = Area(
-            nombre="Despacho de Presidencia",
-            codigo="DESP-PRES",
-            descripcion="Control, rúbrica, resoluciones y decretos de la Presidencia."
+            nombre="Despacho General",
+            codigo="DESP",
+            descripcion="Control, rúbrica, resoluciones y decretos ministeriales."
         )
         area_legales = Area(
             nombre="Dirección General de Asuntos Jurídicos",

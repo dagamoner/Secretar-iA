@@ -18,8 +18,8 @@ export function getDbClient() {
 
 // In-Memory store for preview/demo when no database is connected yet
 let memoryAreas: Area[] = [
-  { id: 1, nombre: "Mesa de Entradas General", codigo: "MEG", descripcion: "Recepción general y derivación de expedientes", activo: true, created_at: new Date().toISOString() },
-  { id: 2, nombre: "Despacho de Presidencia", codigo: "DESP-PRES", descripcion: "Rúbrica y control de despachos", activo: true, created_at: new Date().toISOString() },
+  { id: 1, nombre: "Secretaría Privada - Ministerio de Gobierno", codigo: "SPMG", descripcion: "Recepción, despacho y seguimiento de expedientes y notas de la Secretaría Privada.", activo: true, created_at: new Date().toISOString() },
+  { id: 2, nombre: "Despacho General", codigo: "DESP", descripcion: "Rúbrica y control de despachos", activo: true, created_at: new Date().toISOString() },
   { id: 3, nombre: "Asuntos Jurídicos", codigo: "DGAJ", descripcion: "Dictámenes y asesoría legal", activo: true, created_at: new Date().toISOString() },
 ];
 
@@ -298,6 +298,16 @@ export async function ensureDbInitialized() {
   if (!client) return;
   try {
     await initializeVercelDb();
+
+    // Ensure Area 1 is named Secretaría Privada - Ministerio de Gobierno
+    await client`
+      UPDATE areas 
+      SET 
+        nombre = 'Secretaría Privada - Ministerio de Gobierno',
+        codigo = 'SPMG',
+        descripcion = 'Recepción, despacho y seguimiento de expedientes y notas de la Secretaría Privada.'
+      WHERE id = 1;
+    `;
 
     // Ensure Vanina Pardo and Betiana Salinas exist in PostgreSQL
     await client`
