@@ -58,6 +58,35 @@ export function DenseDocumentTable({
         },
       },
       {
+        accessorKey: "fecha_ingreso",
+        header: ({ column }) => (
+          <button
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            className="flex items-center space-x-1 font-bold text-slate-700 hover:text-slate-900 dark:text-slate-200"
+            title="Fecha en que se recibe el documento en Secretaría"
+          >
+            <span>F. Entrada</span>
+            <ArrowUpDown className="h-3 w-3 opacity-60" />
+          </button>
+        ),
+        size: 95,
+        cell: (info) => {
+          const val = String(info.getValue() || "");
+          if (!val) return <span className="text-slate-400 text-[11px]">-</span>;
+          try {
+            const d = new Date(val);
+            const dateStr = d.toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric" });
+            return (
+              <span className="font-mono text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                {dateStr}
+              </span>
+            );
+          } catch {
+            return <span className="font-mono text-[11px]">{val.slice(0, 10)}</span>;
+          }
+        },
+      },
+      {
         accessorKey: "numero_expediente",
         header: ({ column }) => (
           <button
@@ -109,20 +138,25 @@ export function DenseDocumentTable({
       },
       {
         accessorKey: "iniciador_caratula",
-        header: "Iniciador / Carátula",
-        size: 320,
+        header: "Ámbito Origen / Resumen del Documento",
+        size: 340,
         cell: (info) => {
           const doc = info.row.original;
+          const text = doc.iniciador_caratula || "";
+          const matchAmbito = text.match(/^\[(.*?)\]\s*(.*)$/);
+          const ambito = matchAmbito ? matchAmbito[1] : null;
+          const resumen = matchAmbito ? matchAmbito[2] : text;
+
           return (
-            <div className="max-w-md truncate" title={doc.iniciador_caratula}>
-              <span className="font-medium text-slate-800 dark:text-slate-200">
-                {doc.iniciador_caratula}
-              </span>
-              {doc.extracto && (
-                <p className="truncate text-[10px] text-slate-500 dark:text-slate-400">
-                  {doc.extracto}
-                </p>
+            <div className="max-w-md truncate" title={text}>
+              {ambito && (
+                <span className="inline-block mr-1.5 rounded bg-blue-50 text-blue-700 border border-blue-200 px-1.5 py-0.2 text-[9px] font-bold dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800">
+                  {ambito}
+                </span>
               )}
+              <span className="font-medium text-slate-800 dark:text-slate-200 text-xs">
+                {resumen}
+              </span>
             </div>
           );
         },
@@ -155,20 +189,20 @@ export function DenseDocumentTable({
       },
       {
         accessorKey: "destino_actual",
-        header: "Destino Actual",
+        header: "Ámbito Enviado / Destino",
         size: 180,
         cell: (info) => (
-          <span className="font-semibold text-slate-800 dark:text-slate-200 truncate block">
+          <span className="font-semibold text-slate-800 dark:text-slate-200 truncate block" title={String(info.getValue())}>
             {String(info.getValue())}
           </span>
         ),
       },
       {
         accessorKey: "portador_actual",
-        header: "Portador Actual",
-        size: 160,
+        header: "Portador / Retiró",
+        size: 140,
         cell: (info) => (
-          <span className="text-slate-700 dark:text-slate-300 truncate block">
+          <span className="text-slate-700 dark:text-slate-300 truncate block text-xs" title={String(info.getValue())}>
             {String(info.getValue())}
           </span>
         ),
@@ -189,25 +223,36 @@ export function DenseDocumentTable({
           <button
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
             className="flex items-center space-x-1 font-bold text-slate-700 hover:text-slate-900 dark:text-slate-200"
+            title="Fecha en que sale del área de secretaría"
           >
             <Clock className="h-3 w-3" />
-            <span>Últ. Pase</span>
+            <span>F. Salida</span>
             <ArrowUpDown className="h-3 w-3 opacity-60" />
           </button>
         ),
-        size: 130,
+        size: 110,
         cell: (info) => {
           const doc = info.row.original;
-          return (
-            <div className="flex flex-col text-right">
-              <span className="font-mono text-xs font-semibold text-slate-800 dark:text-slate-200">
-                {doc.ultimo_movimiento_hora_corta} hs
-              </span>
-              <span className="text-[10px] text-slate-500 dark:text-slate-400">
-                {doc.ultimo_movimiento_formateado.split(" ")[0]}
-              </span>
-            </div>
-          );
+          const val = doc.ultimo_movimiento_at;
+          if (!val) return <span className="text-slate-400 text-[11px]">-</span>;
+          try {
+            const d = new Date(val);
+            const dateStr = d.toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric" });
+            return (
+              <div className="flex flex-col text-right">
+                <span className="font-mono text-xs font-semibold text-slate-800 dark:text-slate-200">
+                  {dateStr}
+                </span>
+                {doc.ultimo_movimiento_hora_corta && doc.ultimo_movimiento_hora_corta !== "09:00" && (
+                  <span className="text-[10px] text-slate-400 font-mono">
+                    {doc.ultimo_movimiento_hora_corta} hs
+                  </span>
+                )}
+              </div>
+            );
+          } catch {
+            return <span className="font-mono text-xs">{val.slice(0, 10)}</span>;
+          }
         },
       },
       {
