@@ -462,7 +462,7 @@ export async function dbGetDocumentos(areaId: number, filters?: Partial<FilterSt
       SELECT * FROM documentos 
       WHERE area_id = ${areaId}
       ORDER BY ultimo_movimiento_at DESC 
-      LIMIT 1000;
+      LIMIT 15000;
     `;
     let result = rows.map((r: any) => {
       const ult = r.ultimo_movimiento_at ? new Date(r.ultimo_movimiento_at) : new Date();
@@ -664,7 +664,7 @@ export async function dbCreateDocumento(data: any): Promise<Documento> {
       ${data.area_id}, ${data.numero_expediente}, ${data.tipo_documento || 'EXPEDIENTE'}, ${data.anio || now.getFullYear()},
       ${data.iniciador_caratula}, ${data.extracto || null}, ${data.estado_actual || 'INICIADO'}, ${data.destino_actual || 'Mesa de Entradas'},
       ${data.portador_actual || 'Mesa de Entradas'}, ${data.foja_actual || 1}, ${data.prioridad || 'NORMAL'}, ${data.creado_por_id || null},
-      ${now.toISOString()}, ${now.toISOString()}
+      ${data.fecha_ingreso || now.toISOString()}, ${data.ultimo_movimiento_at || data.fecha_ingreso || now.toISOString()}
     ) RETURNING *;
   `;
   const doc = res[0];
@@ -676,7 +676,7 @@ export async function dbCreateDocumento(data: any): Promise<Documento> {
     ) VALUES (
       ${doc.id}, ${doc.area_id}, ${data.creado_por_id || null}, ${data.creado_por_nombre || 'Mesa de Entradas'},
       ${doc.estado_actual}, ${doc.destino_actual}, ${doc.portador_actual}, ${doc.foja_actual},
-      ${data.observacion_inicial || 'Caratulación inicial'}, ${now.toISOString()}
+      ${data.observacion_inicial || 'Caratulación inicial'}, ${data.ultimo_movimiento_at || data.fecha_ingreso || now.toISOString()}
     );
   `;
 
@@ -935,6 +935,7 @@ export async function dbImportarDocumentosBatch(
     foja_actual?: number;
     prioridad?: string;
     fecha_ingreso?: string;
+    ultimo_movimiento_at?: string;
     observacion?: string;
   }>,
   userName: string = "Importador Masivo Excel"
@@ -943,31 +944,40 @@ export async function dbImportarDocumentosBatch(
   let actualizados = 0;
   let errores = 0;
 
-  for (const item of items) {
-    try {
-      if (!item.numero_expediente || !item.iniciador_caratula) {
-        errores++;
-        continue;
-      }
-      await dbCreateDocumento({
-        area_id: areaId,
-        numero_expediente: item.numero_expediente.trim(),
-        tipo_documento: item.tipo_documento || "EXPEDIENTE",
-        anio: item.anio || new Date().getFullYear(),
-        iniciador_caratula: item.iniciador_caratula.trim(),
-        extracto: item.extracto?.trim() || undefined,
-        estado_actual: item.estado_actual?.toUpperCase() || "INICIADO",
-        destino_actual: item.destino_actual?.trim() || "Mesa de Entradas",
-        portador_actual: item.portador_actual?.trim() || "Mesa de Entradas",
-        foja_actual: Number(item.foja_actual) || 1,
-        prioridad: item.prioridad?.toUpperCase() || "NORMAL",
-        creado_por_nombre: userName,
-        observacion_inicial: item.observacion || "Migrado desde planilla Excel histórica.",
-      });
-      importados++;
-    } catch (e) {
-      errores++;
-    }
+  // Process in concurrent chunks of 25 to optimize serverless execution speed
+  const chunkSize = 25;
+  for (let i = 0; i < items.length; i += chunkSize) {
+    const chunk = items.slice(i, i + chunkSize);
+    await Promise.all(
+      chunk.map(async (item) => {
+        try {
+          if (!item.numero_expediente || !item.iniciador_caratula) {
+            errores++;
+            return;
+          }
+          await dbCreateDocumento({
+            area_id: areaId,
+            numero_expediente: item.numero_expediente.trim(),
+            tipo_documento: item.tipo_documento || "EXPEDIENTE",
+            anio: item.anio || new Date().getFullYear(),
+            iniciador_caratula: item.iniciador_caratula.trim(),
+            extracto: item.extracto?.trim() || undefined,
+            estado_actual: item.estado_actual?.toUpperCase() || "INICIADO",
+            destino_actual: item.destino_actual?.trim() || "Mesa de Entradas",
+            portador_actual: item.portador_actual?.trim() || "Mesa de Entradas",
+            foja_actual: Number(item.foja_actual) || 1,
+            prioridad: item.prioridad?.toUpperCase() || "NORMAL",
+            fecha_ingreso: item.fecha_ingreso,
+            ultimo_movimiento_at: item.ultimo_movimiento_at || item.fecha_ingreso,
+            creado_por_nombre: userName,
+            observacion_inicial: item.observacion || "Migrado desde planilla Excel histórica.",
+          });
+          importados++;
+        } catch (e) {
+          errores++;
+        }
+      })
+    );
   }
 
   return { importados, actualizados, errores };
