@@ -83,4 +83,7 @@ export interface FilterState {
   portador: string;
   destino: string;
   prioridad: string;
+  fechaTipo?: "ENTRADA" | "SALIDA" | "AMBAS";
+  fechaDesde?: string;
+  fechaHasta?: string;
 }

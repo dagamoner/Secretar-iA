@@ -2,7 +2,7 @@
 
 import React, { useRef, useEffect } from "react";
 import { FilterState } from "@/types";
-import { Search, X, RotateCcw, BarChart3, Table as TableIcon, LayoutGrid } from "lucide-react";
+import { Search, X, RotateCcw, BarChart3, Table as TableIcon, LayoutGrid, Calendar } from "lucide-react";
 
 interface FilterToolbarProps {
   filters: FilterState;
@@ -52,6 +52,24 @@ export function FilterToolbar({
     onFilterChange({ ...filters, [field]: value });
   };
 
+  const setQuickDate = (preset: "hoy" | "ayer" | "semana" | "mes") => {
+    const now = new Date();
+    const todayStr = now.toISOString().slice(0, 10);
+
+    if (preset === "hoy") {
+      onFilterChange({ ...filters, fechaDesde: todayStr, fechaHasta: todayStr });
+    } else if (preset === "ayer") {
+      const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+      onFilterChange({ ...filters, fechaDesde: yesterday, fechaHasta: yesterday });
+    } else if (preset === "semana") {
+      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+      onFilterChange({ ...filters, fechaDesde: sevenDaysAgo, fechaHasta: todayStr });
+    } else if (preset === "mes") {
+      const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+      onFilterChange({ ...filters, fechaDesde: firstDay, fechaHasta: todayStr });
+    }
+  };
+
   const clearFilters = () => {
     onFilterChange({
       search: "",
@@ -59,15 +77,20 @@ export function FilterToolbar({
       portador: "TODOS",
       destino: "TODOS",
       prioridad: "TODOS",
+      fechaTipo: "ENTRADA",
+      fechaDesde: "",
+      fechaHasta: "",
     });
   };
 
   const hasActiveFilters =
-    filters.search ||
+    Boolean(filters.search) ||
     filters.estado !== "TODOS" ||
     filters.portador !== "TODOS" ||
     filters.destino !== "TODOS" ||
-    filters.prioridad !== "TODOS";
+    filters.prioridad !== "TODOS" ||
+    Boolean(filters.fechaDesde) ||
+    Boolean(filters.fechaHasta);
 
   return (
     <div className="border-b border-slate-200 bg-white/80 backdrop-blur-xs text-xs dark:border-slate-800 dark:bg-slate-900/80">
@@ -231,10 +254,10 @@ export function FilterToolbar({
             <input
               ref={searchInputRef}
               type="text"
-              placeholder="Buscar por N° expediente, ámbito, carátula o portador..."
+              placeholder="Buscar por N° exp, fecha (16/11/2026), ámbito, carátula o portador..."
               value={filters.search}
               onChange={(e) => updateField("search", e.target.value)}
-              className="h-9 w-80 rounded-lg border border-slate-200 bg-white pl-9 pr-14 text-xs text-slate-900 placeholder:text-slate-400 shadow-xs focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 transition"
+              className="h-9 w-72 rounded-lg border border-slate-200 bg-white pl-9 pr-14 text-xs text-slate-900 placeholder:text-slate-400 shadow-xs focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 transition"
             />
             {filters.search ? (
               <button
@@ -248,6 +271,80 @@ export function FilterToolbar({
               <kbd className="pointer-events-none absolute right-2.5 rounded border border-slate-200 bg-slate-100 px-1.5 py-0.5 text-[10px] font-mono text-slate-400 dark:border-slate-700 dark:bg-slate-700">
                 /
               </kbd>
+            )}
+          </div>
+
+          {/* Dedicated Date Search / Range Filter */}
+          <div className="flex items-center space-x-1.5 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-xs dark:bg-slate-800/80 dark:border-slate-700">
+            <Calendar className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
+            <select
+              value={filters.fechaTipo || "ENTRADA"}
+              onChange={(e) => updateField("fechaTipo", e.target.value)}
+              className="cursor-pointer bg-transparent font-bold text-slate-700 focus:outline-none dark:text-slate-200 text-[11px]"
+              title="Filtrar por Fecha de Entrada o Fecha de Salida"
+            >
+              <option value="ENTRADA">F. Entrada</option>
+              <option value="SALIDA">F. Salida</option>
+              <option value="AMBAS">Cualquier Fecha</option>
+            </select>
+
+            <input
+              type="date"
+              value={filters.fechaDesde || ""}
+              onChange={(e) => updateField("fechaDesde", e.target.value)}
+              className="rounded border border-slate-200 bg-white px-1.5 py-0.5 text-xs text-slate-800 focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+              title="Desde fecha"
+            />
+            <span className="text-slate-400 text-[11px]">a</span>
+            <input
+              type="date"
+              value={filters.fechaHasta || ""}
+              onChange={(e) => updateField("fechaHasta", e.target.value)}
+              className="rounded border border-slate-200 bg-white px-1.5 py-0.5 text-xs text-slate-800 focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+              title="Hasta fecha"
+            />
+
+            {/* Quick Date Presets */}
+            <div className="hidden xl:flex items-center space-x-1 border-l border-slate-200 pl-1.5 dark:border-slate-700">
+              <button
+                type="button"
+                onClick={() => setQuickDate("hoy")}
+                className="rounded px-1.5 py-0.5 text-[10px] font-semibold text-slate-600 hover:bg-slate-200 dark:text-slate-300 dark:hover:bg-slate-700 transition"
+              >
+                Hoy
+              </button>
+              <button
+                type="button"
+                onClick={() => setQuickDate("ayer")}
+                className="rounded px-1.5 py-0.5 text-[10px] font-semibold text-slate-600 hover:bg-slate-200 dark:text-slate-300 dark:hover:bg-slate-700 transition"
+              >
+                Ayer
+              </button>
+              <button
+                type="button"
+                onClick={() => setQuickDate("semana")}
+                className="rounded px-1.5 py-0.5 text-[10px] font-semibold text-slate-600 hover:bg-slate-200 dark:text-slate-300 dark:hover:bg-slate-700 transition"
+              >
+                7 días
+              </button>
+              <button
+                type="button"
+                onClick={() => setQuickDate("mes")}
+                className="rounded px-1.5 py-0.5 text-[10px] font-semibold text-slate-600 hover:bg-slate-200 dark:text-slate-300 dark:hover:bg-slate-700 transition"
+              >
+                Este Mes
+              </button>
+            </div>
+
+            {(filters.fechaDesde || filters.fechaHasta) && (
+              <button
+                type="button"
+                onClick={() => onFilterChange({ ...filters, fechaDesde: "", fechaHasta: "" })}
+                className="rounded p-0.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                title="Quitar filtro de fecha"
+              >
+                <X className="h-3 w-3" />
+              </button>
             )}
           </div>
 

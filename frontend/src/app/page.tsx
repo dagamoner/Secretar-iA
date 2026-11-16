@@ -184,6 +184,26 @@ export default function HomePage() {
         const port = normalizeSearchText(d.portador_actual);
         const tipo = normalizeSearchText(d.tipo_documento);
         const anio = String(d.anio || "");
+
+        // Dates matching (both Argentine DD/MM/YYYY and ISO YYYY-MM-DD formats)
+        let fEntradaStr = "";
+        let fEntradaIso = "";
+        if (d.fecha_ingreso) {
+          try {
+            fEntradaStr = new Date(d.fecha_ingreso).toLocaleDateString("es-AR");
+            fEntradaIso = d.fecha_ingreso.slice(0, 10);
+          } catch {}
+        }
+
+        let fSalidaStr = "";
+        let fSalidaIso = "";
+        if (d.ultimo_movimiento_at) {
+          try {
+            fSalidaStr = new Date(d.ultimo_movimiento_at).toLocaleDateString("es-AR");
+            fSalidaIso = d.ultimo_movimiento_at.slice(0, 10);
+          } catch {}
+        }
+
         return (
           num.includes(q) ||
           cara.includes(q) ||
@@ -191,8 +211,43 @@ export default function HomePage() {
           dest.includes(q) ||
           port.includes(q) ||
           tipo.includes(q) ||
-          anio.includes(q)
+          anio.includes(q) ||
+          fEntradaStr.includes(q) ||
+          fEntradaIso.includes(q) ||
+          fSalidaStr.includes(q) ||
+          fSalidaIso.includes(q)
         );
+      });
+    }
+
+    // Explicit Date Range Filter
+    if (filters.fechaDesde || filters.fechaHasta) {
+      const desde = filters.fechaDesde ? new Date(filters.fechaDesde + "T00:00:00").getTime() : null;
+      const hasta = filters.fechaHasta ? new Date(filters.fechaHasta + "T23:59:59").getTime() : null;
+      const tipo = filters.fechaTipo || "ENTRADA";
+
+      list = list.filter((d) => {
+        const tEntrada = d.fecha_ingreso ? new Date(d.fecha_ingreso).getTime() : null;
+        const tSalida = d.ultimo_movimiento_at ? new Date(d.ultimo_movimiento_at).getTime() : null;
+
+        let checkEntrada = false;
+        let checkSalida = false;
+
+        if (tEntrada) {
+          const matchDesde = desde !== null ? tEntrada >= desde : true;
+          const matchHasta = hasta !== null ? tEntrada <= hasta : true;
+          checkEntrada = matchDesde && matchHasta;
+        }
+
+        if (tSalida) {
+          const matchDesde = desde !== null ? tSalida >= desde : true;
+          const matchHasta = hasta !== null ? tSalida <= hasta : true;
+          checkSalida = matchDesde && matchHasta;
+        }
+
+        if (tipo === "ENTRADA") return checkEntrada;
+        if (tipo === "SALIDA") return checkSalida;
+        return checkEntrada || checkSalida;
       });
     }
 
