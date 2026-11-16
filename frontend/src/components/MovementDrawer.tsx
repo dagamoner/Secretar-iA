@@ -5,7 +5,21 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Documento, CatalogoDestino, Usuario, Movimiento } from "@/types";
 import { fetchDocumentoDetalle, registrarMovimiento, emitEditingNotice } from "@/lib/api";
 import { getEstadoBadgeClass, cn } from "@/lib/utils";
-import { X, ArrowRight, UserCheck, Clock, FileText, Send, AlertCircle, History } from "lucide-react";
+import {
+  X,
+  ArrowRight,
+  UserCheck,
+  Clock,
+  FileText,
+  Send,
+  AlertCircle,
+  History,
+  Copy,
+  Check,
+  Building,
+  Tag,
+  ArrowUpRight,
+} from "lucide-react";
 
 interface MovementDrawerProps {
   documento: Documento | null;
@@ -14,6 +28,23 @@ interface MovementDrawerProps {
   catalogosDestinos: CatalogoDestino[];
   onClose: () => void;
 }
+
+const DESTINOS_RAPIDOS = [
+  "Despacho de Hacienda",
+  "Despacho 008",
+  "Ministerio de Infraestructura",
+  "Archivo Central",
+  "Dirección de Asuntos Jurídicos",
+  "Contabilidad General",
+];
+
+const OBSERVACIONES_RAPIDAS = [
+  "A la firma del Ministro",
+  "Para dictamen legal",
+  "Para conocimiento e intervención",
+  "Aprobado y refrendado",
+  "Remitido para archivo definitivo",
+];
 
 export function MovementDrawer({
   documento,
@@ -31,6 +62,7 @@ export function MovementDrawer({
   const [fojasAgregadas, setFojasAgregadas] = useState<number>(0);
   const [observacion, setObservacion] = useState<string>("");
   const [errorMsg, setErrorMsg] = useState<string>("");
+  const [copied, setCopied] = useState<boolean>(false);
 
   // Fetch full details and immutable movement history
   const { data: docDetalle, isLoading } = useQuery({
@@ -49,21 +81,26 @@ export function MovementDrawer({
       setObservacion("");
       setErrorMsg("");
 
-      // Notify other users that this document is being edited
       if (currentUser) {
         emitEditingNotice(areaId, documento.id, currentUser.nombre_completo, true);
       }
     }
 
     return () => {
-      // Clear editing notice on close
       if (documento && currentUser) {
         emitEditingNotice(areaId, documento.id, currentUser.nombre_completo, false);
       }
     };
   }, [documento, areaId, currentUser]);
 
-  // When user selects a destination from catalog, optionally autofill default responsible
+  const handleCopyExpediente = () => {
+    if (documento?.numero_expediente) {
+      navigator.clipboard.writeText(documento.numero_expediente);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
   const handleDestinoSelect = (nombre: string) => {
     setDestinoNuevo(nombre);
     const cat = catalogosDestinos.find((c) => c.nombre === nombre);
@@ -113,68 +150,80 @@ export function MovementDrawer({
   return (
     <div className="fixed inset-y-0 right-0 z-50 flex w-full max-w-xl flex-col border-l border-slate-200 bg-white shadow-2xl transition-all duration-300 dark:border-slate-800 dark:bg-slate-900">
       {/* Drawer Header */}
-      <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-5 py-3 dark:border-slate-800 dark:bg-slate-800/60">
+      <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50/90 px-5 py-3.5 backdrop-blur-xs dark:border-slate-800 dark:bg-slate-800/60">
         <div>
           <div className="flex items-center space-x-2">
-            <span className="font-mono text-sm font-black text-blue-600 dark:text-blue-400">
+            <span className="font-mono text-sm font-black text-blue-600 dark:text-blue-400 tracking-tight">
               {documento.numero_expediente}
             </span>
+            <button
+              onClick={handleCopyExpediente}
+              title="Copiar N° Expediente"
+              className="rounded p-1 text-slate-400 hover:bg-slate-200 hover:text-slate-700 dark:hover:bg-slate-700 dark:hover:text-white transition"
+            >
+              {copied ? (
+                <Check className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+              ) : (
+                <Copy className="h-3.5 w-3.5" />
+              )}
+            </button>
             <span
               className={cn(
-                "rounded px-2 py-0.5 text-[10px] font-bold uppercase",
+                "rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider",
                 getEstadoBadgeClass(documento.estado_actual)
               )}
             >
               {documento.estado_actual}
             </span>
           </div>
-          <p className="mt-0.5 max-w-md truncate text-xs text-slate-600 dark:text-slate-300">
+          <p className="mt-1 max-w-md truncate text-xs text-slate-600 dark:text-slate-300">
             {documento.iniciador_caratula}
           </p>
         </div>
         <button
           onClick={onClose}
-          className="rounded-md p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700 dark:hover:bg-slate-700 dark:hover:text-white"
+          className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700 dark:hover:bg-slate-700 dark:hover:text-white transition"
         >
           <X className="h-5 w-5" />
         </button>
       </div>
 
-      {/* Drawer Body (Form + History) */}
+      {/* Drawer Body */}
       <div className="flex-1 overflow-y-auto px-5 py-4 space-y-6">
         {/* Rapid Pase Form */}
-        <section className="rounded-xl border border-blue-100 bg-blue-50/40 p-4 dark:border-blue-900/50 dark:bg-blue-950/20">
+        <section className="rounded-xl border border-blue-200/80 bg-blue-50/40 p-4 shadow-2xs dark:border-blue-900/50 dark:bg-blue-950/20">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-xs font-bold uppercase tracking-wider text-blue-900 dark:text-blue-300 flex items-center gap-1.5">
-              <Send className="h-3.5 w-3.5" /> Registrar Nuevo Pase / Movimiento
+              <Send className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" /> Registrar Nuevo Pase / Movimiento
             </h3>
-            <span className="text-[11px] font-semibold text-slate-500">
-              Fojas actuales: <strong className="text-slate-900 dark:text-white">{documento.foja_actual}</strong>
+            <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+              Fojas actuales: <strong className="text-slate-900 dark:text-white font-mono">{documento.foja_actual}</strong>
             </span>
           </div>
 
           {errorMsg && (
-            <div className="mb-3 flex items-center space-x-2 rounded-md bg-rose-50 p-2 text-xs text-rose-700 dark:bg-rose-950/50 dark:text-rose-300">
+            <div className="mb-3 flex items-center space-x-2 rounded-lg bg-rose-50 border border-rose-200 p-2.5 text-xs text-rose-700 dark:bg-rose-950/50 dark:border-rose-900/60 dark:text-rose-300">
               <AlertCircle className="h-4 w-4 shrink-0" />
               <span>{errorMsg}</span>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-3">
+          <form onSubmit={handleSubmit} className="space-y-3.5">
             <div className="grid grid-cols-2 gap-3">
               {/* Estado Nuevo */}
               <div>
-                <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
                   Nuevo Estado *
                 </label>
                 <select
                   value={estadoNuevo}
                   onChange={(e) => setEstadoNuevo(e.target.value)}
-                  className="w-full rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-800 shadow-sm focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                  className="w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-800 shadow-2xs focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                 >
                   <option value="DESPACHO">DESPACHO</option>
                   <option value="EN MANO">EN MANO</option>
                   <option value="FIRMADO">FIRMADO</option>
+                  <option value="OBSERVADO">OBSERVADO</option>
                   <option value="ARCHIVO">ARCHIVO</option>
                   <option value="NOTIFICADO">NOTIFICADO</option>
                   <option value="INICIADO">INICIADO</option>
@@ -183,7 +232,7 @@ export function MovementDrawer({
 
               {/* Fojas Agregadas */}
               <div>
-                <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
                   Fojas Agregadas (+F)
                 </label>
                 <input
@@ -192,7 +241,7 @@ export function MovementDrawer({
                   value={fojasAgregadas}
                   onChange={(e) => setFojasAgregadas(Number(e.target.value))}
                   placeholder="0"
-                  className="w-full rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-xs text-slate-800 shadow-sm focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                  className="w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs text-slate-800 shadow-2xs focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                 />
               </div>
             </div>
@@ -200,23 +249,22 @@ export function MovementDrawer({
             {/* Destino Nuevo */}
             <div>
               <div className="flex items-center justify-between mb-1">
-                <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
-                  Destino Nuevo *
+                <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1">
+                  <Building className="h-3 w-3 text-slate-400" />
+                  <span>Ámbito Destino *</span>
                 </label>
-                {catalogosDestinos.length > 0 && (
-                  <span className="text-[10px] text-blue-600 dark:text-blue-400 font-medium">
-                    Sugerencias de catálogo
-                  </span>
-                )}
+                <span className="text-[10px] text-blue-600 dark:text-blue-400 font-semibold">
+                  Mesa de destino
+                </span>
               </div>
               <input
                 type="text"
                 list="lista-destinos"
                 value={destinoNuevo}
                 onChange={(e) => handleDestinoSelect(e.target.value)}
-                placeholder="Ej. Dirección General de Legales"
+                placeholder="Ej. Despacho de Hacienda / Min. Infraestructura"
                 required
-                className="w-full rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-xs text-slate-800 shadow-sm focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs text-slate-900 shadow-2xs focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white font-medium"
               />
               <datalist id="lista-destinos">
                 {catalogosDestinos.map((c) => (
@@ -225,48 +273,76 @@ export function MovementDrawer({
                   </option>
                 ))}
               </datalist>
+
+              {/* Quick Destination Chips */}
+              <div className="mt-2 flex flex-wrap gap-1">
+                {DESTINOS_RAPIDOS.map((dest) => (
+                  <button
+                    key={dest}
+                    type="button"
+                    onClick={() => handleDestinoSelect(dest)}
+                    className="rounded border border-blue-200/80 bg-white px-2 py-0.5 text-[10px] font-medium text-blue-700 hover:bg-blue-100 hover:border-blue-300 dark:border-slate-700 dark:bg-slate-800 dark:text-blue-300 dark:hover:bg-slate-700 transition"
+                  >
+                    + {dest}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* Portador Nuevo */}
             <div>
-              <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                Portador / Responsable Actual *
+              <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
+                Portador / Retiró / Persona a cargo *
               </label>
               <input
                 type="text"
                 value={portadorNuevo}
                 onChange={(e) => setPortadorNuevo(e.target.value)}
-                placeholder="Ej. Dr. Andrés Suárez / Despacho"
+                placeholder="Ej. Vanina Pardo / Betiana Salinas / Dr. Suárez"
                 required
-                className="w-full rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-xs text-slate-800 shadow-sm focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs text-slate-900 shadow-2xs focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
               />
             </div>
 
-            {/* Observación / Motivo */}
+            {/* Observaciones */}
             <div>
-              <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">
                 Motivo del pase / Observaciones
               </label>
               <textarea
                 rows={2}
                 value={observacion}
                 onChange={(e) => setObservacion(e.target.value)}
-                placeholder="Ej. Para dictamen técnico de elevación a firma..."
-                className="w-full rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-xs text-slate-800 shadow-sm focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                placeholder="Ej. A la firma del Ministro para posterior elevación..."
+                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs text-slate-900 shadow-2xs focus:border-blue-500 focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"
               />
+
+              {/* Quick Observation Chips */}
+              <div className="mt-1.5 flex flex-wrap gap-1">
+                {OBSERVACIONES_RAPIDAS.map((obs) => (
+                  <button
+                    key={obs}
+                    type="button"
+                    onClick={() => setObservacion(obs)}
+                    className="rounded border border-slate-200 bg-white px-2 py-0.5 text-[10px] text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700 transition"
+                  >
+                    "{obs}"
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* Submit Action */}
-            <div className="flex items-center justify-between pt-1">
-              <span className="text-[11px] text-slate-500 flex items-center gap-1">
-                <UserCheck className="h-3.5 w-3.5 text-slate-400" />
-                Operador: <strong className="text-slate-700 dark:text-slate-300">{currentUser?.nombre_completo || "Operador"}</strong>
+            <div className="flex items-center justify-between pt-2 border-t border-blue-200/60 dark:border-blue-900/40">
+              <span className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                <UserCheck className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+                Interviene: <strong className="text-slate-900 dark:text-white">{currentUser?.nombre_completo || "Operador"}</strong>
               </span>
 
               <button
                 type="submit"
                 disabled={mutation.isPending}
-                className="inline-flex items-center space-x-1.5 rounded-md bg-blue-600 px-4 py-1.5 text-xs font-bold text-white shadow hover:bg-blue-500 disabled:opacity-50 transition active:scale-95"
+                className="inline-flex items-center space-x-1.5 rounded-lg bg-blue-600 px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-blue-500 disabled:opacity-50 transition active:scale-95"
               >
                 <Send className="h-3.5 w-3.5" />
                 <span>{mutation.isPending ? "Guardando..." : "Confirmar Pase"}</span>
@@ -277,12 +353,12 @@ export function MovementDrawer({
 
         {/* Immutable Audit Trail Section */}
         <section className="space-y-3">
-          <div className="flex items-center justify-between border-b border-slate-200 pb-2 dark:border-slate-800">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-              <History className="h-4 w-4 text-slate-500" /> Historial Inmutable y Auditoría Visible
+          <div className="flex items-center justify-between border-b border-slate-200 pb-2.5 dark:border-slate-800">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+              <History className="h-4 w-4 text-blue-600 dark:text-blue-400" /> Historial de Pases y Auditoría
             </h3>
-            <span className="rounded bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-400">
-              {movimientos.length} movimientos
+            <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[10px] font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-400">
+              {movimientos.length} {movimientos.length === 1 ? "movimiento" : "movimientos"}
             </span>
           </div>
 
@@ -298,14 +374,16 @@ export function MovementDrawer({
                   <span
                     className={cn(
                       "absolute -left-[21px] top-1 h-3 w-3 rounded-full border-2 border-white dark:border-slate-900",
-                      index === 0 ? "bg-blue-600 ring-4 ring-blue-100 dark:ring-blue-950" : "bg-slate-400"
+                      index === 0
+                        ? "bg-blue-600 ring-4 ring-blue-100 dark:ring-blue-950"
+                        : "bg-slate-400"
                     )}
                   />
 
                   {/* Card Content */}
-                  <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-xs dark:border-slate-800 dark:bg-slate-900/90">
-                    {/* Audit Header: User Name + Exact Time */}
-                    <div className="flex items-center justify-between border-b border-slate-100 pb-1.5 mb-2 dark:border-slate-800/80">
+                  <div className="rounded-xl border border-slate-200 bg-white p-3.5 shadow-2xs dark:border-slate-800 dark:bg-slate-900/90">
+                    {/* Header: User + Time */}
+                    <div className="flex items-center justify-between border-b border-slate-100 pb-2 mb-2 dark:border-slate-800/80">
                       <div className="flex items-center space-x-1.5">
                         <UserCheck className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
                         <span className="font-bold text-xs text-slate-900 dark:text-white">
@@ -314,19 +392,19 @@ export function MovementDrawer({
                       </div>
                       <div className="flex items-center space-x-1 text-[11px] font-mono text-slate-500 dark:text-slate-400">
                         <Clock className="h-3 w-3" />
-                        <span className="font-semibold text-slate-700 dark:text-slate-300">
+                        <span className="font-bold text-slate-800 dark:text-slate-200">
                           {m.hora_corta} hs
                         </span>
                         <span>({m.fecha_formateada.split(" ")[0]})</span>
                       </div>
                     </div>
 
-                    {/* Movement Changes */}
+                    {/* Details */}
                     <div className="flex flex-wrap items-center gap-2 text-xs">
                       <span className="font-semibold text-slate-500">Pase a:</span>
                       <span
                         className={cn(
-                          "rounded px-1.5 py-0.2 text-[10px] font-bold uppercase",
+                          "rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider",
                           getEstadoBadgeClass(m.estado_nuevo)
                         )}
                       >
@@ -344,7 +422,7 @@ export function MovementDrawer({
                       </div>
 
                       {m.fojas_agregadas > 0 && (
-                        <span className="rounded bg-emerald-50 px-1.5 py-0.2 text-[10px] font-bold text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">
+                        <span className="rounded bg-emerald-50 border border-emerald-200 px-1.5 py-0.2 text-[10px] font-bold text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800">
                           +{m.fojas_agregadas} fojas
                         </span>
                       )}
@@ -352,7 +430,7 @@ export function MovementDrawer({
 
                     {/* Observations */}
                     {m.observacion && (
-                      <p className="mt-2 text-xs text-slate-600 dark:text-slate-400 italic bg-slate-50 dark:bg-slate-800/50 p-2 rounded border border-slate-100 dark:border-slate-800">
+                      <p className="mt-2.5 text-xs text-slate-700 dark:text-slate-300 italic bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-lg border border-slate-100 dark:border-slate-800">
                         "{m.observacion}"
                       </p>
                     )}

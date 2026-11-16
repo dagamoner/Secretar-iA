@@ -137,6 +137,34 @@ export default function HomePage() {
     return Array.from(set).sort();
   }, [todosLosDocumentos]);
 
+  // Executive KPI stats for quick dashboard metrics & instant chips
+  const stats = useMemo(() => {
+    let total = todosLosDocumentos.length;
+    let firmados = 0;
+    let despacho = 0;
+    let enMano = 0;
+    let observados = 0;
+    let urgentes = 0;
+    let misTramites = 0;
+
+    const myName = currentUser?.nombre_completo ? normalizeSearchText(currentUser.nombre_completo) : "";
+
+    for (const d of todosLosDocumentos) {
+      if (d.estado_actual === "FIRMADO") firmados++;
+      else if (d.estado_actual === "DESPACHO") despacho++;
+      else if (d.estado_actual === "EN MANO") enMano++;
+      else if (d.estado_actual === "OBSERVADO") observados++;
+
+      if (d.prioridad === "URGENTE" || d.prioridad === "PRONTO DESPACHO") urgentes++;
+
+      if (myName && normalizeSearchText(d.portador_actual).includes(myName)) {
+        misTramites++;
+      }
+    }
+
+    return { total, firmados, despacho, enMano, observados, urgentes, misTramites };
+  }, [todosLosDocumentos, currentUser]);
+
   // Instant real-time filtered documents (0ms latency, accent-insensitive, null-safe)
   const documentos = useMemo(() => {
     let list = todosLosDocumentos;
@@ -364,6 +392,7 @@ export default function HomePage() {
         totalRegistros={documentos.length}
         focusSearchTrigger={focusSearchTrigger}
         currentUserName={currentUser?.nombre_completo}
+        stats={stats}
       />
 
       {/* Dense High-Speed Document Grid */}
