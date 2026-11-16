@@ -202,3 +202,34 @@ export async function limpiarDatosDemo(areaId?: number): Promise<boolean> {
   }
   return true;
 }
+
+// -------------------------------------------------------------
+// AUTENTICACIÓN
+// -------------------------------------------------------------
+
+export async function loginUser(username: string, password: string): Promise<Usuario> {
+  const res = await fetch(`${API_BASE}/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, password }),
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.error || "Usuario o contraseña incorrectos");
+  }
+  const data = await res.json();
+  return data.user;
+}
+
+export async function cambiarPassword(userId: number, oldPassword: string, newPassword: string): Promise<boolean> {
+  const res = await fetch(`${API_BASE}/auth/change-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ user_id: userId, old_password: oldPassword, new_password: newPassword }),
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.error || "Error al cambiar contraseña");
+  }
+  return true;
+}

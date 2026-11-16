@@ -10,10 +10,12 @@ export interface Area {
 export interface Usuario {
   id: number;
   area_id: number;
+  area_nombre?: string;
   username: string;
   nombre_completo: string;
   rol: string;
   activo: boolean;
+  password_hash?: string;
 }
 
 export interface CatalogoDestino {

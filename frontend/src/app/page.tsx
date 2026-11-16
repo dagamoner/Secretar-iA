@@ -19,14 +19,20 @@ import { MovementDrawer } from "@/components/MovementDrawer";
 import { NewDocumentModal } from "@/components/NewDocumentModal";
 import { KeyboardShortcutsHelp } from "@/components/KeyboardShortcutsHelp";
 import { AdminModal } from "@/components/AdminModal";
+import { LoginScreen } from "@/components/LoginScreen";
+import { ChangePasswordModal } from "@/components/ChangePasswordModal";
 import { useQueryClient } from "@tanstack/react-query";
 
 export default function HomePage() {
   const queryClient = useQueryClient();
 
+  // Authentication State
+  const [currentUser, setCurrentUser] = useState<Usuario | null>(null);
+  const [isAuthLoaded, setIsAuthLoaded] = useState(false);
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
+
   // Area Multi-Tenant State
   const [currentAreaId, setCurrentAreaId] = useState<number>(1);
-  const [currentUser, setCurrentUser] = useState<Usuario | null>(null);
 
   // Modals & Drawer State
   const [selectedDoc, setSelectedDoc] = useState<Documento | null>(null);
@@ -73,18 +79,34 @@ export default function HomePage() {
     enabled: !!currentAreaId,
   });
 
-  // Select default user once loaded or restore from localStorage
+  // Restore logged-in user on client mount
   React.useEffect(() => {
-    if (usuarios.length > 0) {
-      const savedUserId = typeof window !== "undefined" ? localStorage.getItem("secretaria_user_id") : null;
-      const matched = savedUserId ? usuarios.find((u) => u.id === Number(savedUserId)) : null;
-      if (matched) {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("secretaria_auth_user");
+      if (saved) {
+        try {
+          const u: Usuario = JSON.parse(saved);
+          setCurrentUser(u);
+          if (u.area_id) {
+            setCurrentAreaId(u.area_id);
+          }
+        } catch {
+          localStorage.removeItem("secretaria_auth_user");
+        }
+      }
+      setIsAuthLoaded(true);
+    }
+  }, []);
+
+  // Update current user info if refreshed in usuarios list
+  React.useEffect(() => {
+    if (currentUser && usuarios.length > 0) {
+      const matched = usuarios.find((u) => u.id === currentUser.id);
+      if (matched && matched.nombre_completo !== currentUser.nombre_completo) {
         setCurrentUser(matched);
-      } else if (!currentUser || currentUser.area_id !== currentAreaId) {
-        setCurrentUser(usuarios[0]);
       }
     }
-  }, [usuarios, currentAreaId, currentUser]);
+  }, [usuarios, currentUser]);
 
   const { data: documentos = [], isLoading: isLoadingDocs } = useQuery({
     queryKey: ["documentos", currentAreaId, filters],
@@ -144,6 +166,35 @@ export default function HomePage() {
     onToggleHelp: () => setIsHelpOpen((prev) => !prev),
   });
 
+  // Loading screen while checking authentication session
+  if (!isAuthLoaded) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-slate-50 dark:bg-slate-950">
+        <div className="text-center">
+          <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-blue-600 border-t-transparent"></div>
+          <p className="mt-3 text-xs font-semibold text-slate-500">Iniciando Secretar·iA...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // If user is not authenticated, display login screen
+  if (!currentUser) {
+    return (
+      <LoginScreen
+        onLoginSuccess={(user) => {
+          setCurrentUser(user);
+          if (typeof window !== "undefined") {
+            localStorage.setItem("secretaria_auth_user", JSON.stringify(user));
+          }
+          if (user.area_id) {
+            setCurrentAreaId(user.area_id);
+          }
+        }}
+      />
+    );
+  }
+
   return (
     <div className="flex h-screen flex-col bg-white text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100">
       {/* Header Bar */}
@@ -160,6 +211,7 @@ export default function HomePage() {
         onUserChange={(u) => {
           setCurrentUser(u);
           if (typeof window !== "undefined") {
+            localStorage.setItem("secretaria_auth_user", JSON.stringify(u));
             localStorage.setItem("secretaria_user_id", String(u.id));
           }
         }}
@@ -167,6 +219,14 @@ export default function HomePage() {
         onOpenNewDoc={() => setIsNewDocOpen(true)}
         onOpenHelp={() => setIsHelpOpen(true)}
         onOpenAdmin={() => setIsAdminOpen(true)}
+        onLogout={() => {
+          setCurrentUser(null);
+          if (typeof window !== "undefined") {
+            localStorage.removeItem("secretaria_auth_user");
+            localStorage.removeItem("secretaria_user_id");
+          }
+        }}
+        onOpenChangePassword={() => setIsChangePasswordOpen(true)}
       />
 
       {/* Instant Filter Bar */}
@@ -247,6 +307,15 @@ export default function HomePage() {
           queryClient.invalidateQueries({ queryKey: ["documentos", currentAreaId] });
         }}
       />
+
+      {/* Change Password Modal */}
+      {isChangePasswordOpen && currentUser && (
+        <ChangePasswordModal
+          isOpen={isChangePasswordOpen}
+          onClose={() => setIsChangePasswordOpen(false)}
+          currentUser={currentUser}
+        />
+      )}
     </div>
   );
 }

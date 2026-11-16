@@ -1,6 +1,16 @@
+import crypto from "crypto";
 import { sql } from "@vercel/postgres";
 import { neon } from "@neondatabase/serverless";
 import { Area, Usuario, CatalogoDestino, Documento, Movimiento, FilterState } from "@/types";
+
+export function hashPassword(password: string): string {
+  return crypto.createHash("sha256").update(password.trim()).digest("hex");
+}
+
+export function verifyPassword(password: string, hash?: string): boolean {
+  if (!hash) return false;
+  return hashPassword(password) === hash || password === hash;
+}
 
 export function getDbClient() {
   const connectionString =
@@ -24,8 +34,8 @@ let memoryAreas: Area[] = [
 ];
 
 let memoryUsers: Usuario[] = [
-  { id: 1, area_id: 1, username: "vaninapardo", nombre_completo: "Vanina Pardo", rol: "OPERADOR", activo: true },
-  { id: 2, area_id: 1, username: "betianasalinas", nombre_completo: "Betiana Salinas", rol: "OPERADOR", activo: true },
+  { id: 1, area_id: 1, username: "vaninapardo", nombre_completo: "Vanina Pardo", rol: "OPERADOR", activo: true, password_hash: hashPassword("vanina2026") },
+  { id: 2, area_id: 1, username: "betianasalinas", nombre_completo: "Betiana Salinas", rol: "OPERADOR", activo: true, password_hash: hashPassword("betiana2026") },
 ];
 
 let memoryDestinos: CatalogoDestino[] = [
@@ -309,14 +319,23 @@ export async function ensureDbInitialized() {
       WHERE id = 1;
     `;
 
-    // Ensure Vanina Pardo and Betiana Salinas exist in PostgreSQL
+    // Ensure password_hash column exists
+    await client`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS password_hash VARCHAR(255);`;
+
+    const hashVanina = hashPassword("vanina2026");
+    const hashBetiana = hashPassword("betiana2026");
+
+    // Ensure Vanina Pardo and Betiana Salinas exist in PostgreSQL with initial passwords
     await client`
-      INSERT INTO usuarios (area_id, username, nombre_completo, rol, activo)
+      INSERT INTO usuarios (area_id, username, nombre_completo, rol, activo, password_hash)
       VALUES 
-        (1, 'vaninapardo', 'Vanina Pardo', 'OPERADOR', true),
-        (1, 'betianasalinas', 'Betiana Salinas', 'OPERADOR', true)
+        (1, 'vaninapardo', 'Vanina Pardo', 'OPERADOR', true, ${hashVanina}),
+        (1, 'betianasalinas', 'Betiana Salinas', 'OPERADOR', true, ${hashBetiana})
       ON CONFLICT (username) DO UPDATE 
-      SET nombre_completo = EXCLUDED.nombre_completo, activo = true;
+      SET 
+        nombre_completo = EXCLUDED.nombre_completo,
+        password_hash = COALESCE(usuarios.password_hash, EXCLUDED.password_hash),
+        activo = true;
     `;
 
     // Purge mock demo users
@@ -767,8 +786,11 @@ export async function dbDeleteArea(id: number): Promise<boolean> {
   return true;
 }
 
-export async function dbCreateUsuario(data: { area_id: number; username: string; nombre_completo: string; rol?: string }): Promise<Usuario> {
+export async function dbCreateUsuario(data: { area_id: number; username: string; nombre_completo: string; rol?: string; password?: string }): Promise<Usuario> {
   const client = getDbClient();
+  const initialPassword = data.password || "secretaria2026";
+  const pwdHash = hashPassword(initialPassword);
+
   if (!client) {
     const newUser: Usuario = {
       id: memoryUsers.length + 1,
@@ -783,8 +805,8 @@ export async function dbCreateUsuario(data: { area_id: number; username: string;
   }
 
   const res = await client`
-    INSERT INTO usuarios (area_id, username, nombre_completo, rol, activo)
-    VALUES (${data.area_id}, ${data.username.trim().toLowerCase()}, ${data.nombre_completo.trim()}, ${data.rol || 'OPERADOR'}, true)
+    INSERT INTO usuarios (area_id, username, nombre_completo, rol, activo, password_hash)
+    VALUES (${data.area_id}, ${data.username.trim().toLowerCase()}, ${data.nombre_completo.trim()}, ${data.rol || 'OPERADOR'}, true, ${pwdHash})
     RETURNING *;
   `;
   const r = res[0];
@@ -935,4 +957,93 @@ export async function dbLimpiarDatosPrueba(areaId?: number): Promise<{ limpiados
   }
 
   return { limpiados: true };
+}
+
+// -------------------------------------------------------------
+// AUTENTICACIÓN: LOGIN Y CAMBIO DE CONTRASEÑA
+// -------------------------------------------------------------
+
+export async function dbAuthenticateUser(username: string, password: string): Promise<Usuario | null> {
+  await ensureDbInitialized();
+  const cleanUsername = username.trim().toLowerCase();
+  const client = getDbClient();
+
+  if (!client) {
+    const user = memoryUsers.find(
+      (u) =>
+        (u.username.toLowerCase() === cleanUsername ||
+          u.nombre_completo.toLowerCase() === cleanUsername ||
+          u.username.toLowerCase().replace(/\s/g, "") === cleanUsername.replace(/\s/g, "")) &&
+        u.activo
+    );
+    if (!user) return null;
+    if (!verifyPassword(password, user.password_hash)) return null;
+    const area = memoryAreas.find((a) => a.id === user.area_id);
+    return {
+      id: user.id,
+      area_id: user.area_id,
+      area_nombre: area?.nombre || "Secretaría Privada - Ministerio de Gobierno",
+      username: user.username,
+      nombre_completo: user.nombre_completo,
+      rol: user.rol,
+      activo: user.activo,
+    };
+  }
+
+  const rows = await client`
+    SELECT u.*, a.nombre as area_nombre 
+    FROM usuarios u
+    JOIN areas a ON a.id = u.area_id
+    WHERE (LOWER(u.username) = ${cleanUsername} OR LOWER(u.nombre_completo) = ${cleanUsername} OR REPLACE(LOWER(u.nombre_completo), ' ', '') = ${cleanUsername.replace(/\s/g, '')})
+      AND u.activo = true
+    LIMIT 1;
+  `;
+
+  if (rows.length === 0) return null;
+  const r = rows[0];
+
+  if (!verifyPassword(password, r.password_hash)) {
+    return null;
+  }
+
+  return {
+    id: r.id,
+    area_id: r.area_id,
+    area_nombre: r.area_nombre,
+    username: r.username,
+    nombre_completo: r.nombre_completo,
+    rol: r.rol,
+    activo: r.activo,
+  };
+}
+
+export async function dbChangePassword(
+  userId: number,
+  oldPassword: string,
+  newPassword: string
+): Promise<{ success: boolean; message: string }> {
+  await ensureDbInitialized();
+  const client = getDbClient();
+
+  if (!client) {
+    const user = memoryUsers.find((u) => u.id === userId);
+    if (!user) return { success: false, message: "Usuario no encontrado" };
+    if (!verifyPassword(oldPassword, user.password_hash)) {
+      return { success: false, message: "La contraseña actual no es correcta" };
+    }
+    user.password_hash = hashPassword(newPassword);
+    return { success: true, message: "Contraseña actualizada exitosamente" };
+  }
+
+  const rows = await client`SELECT * FROM usuarios WHERE id = ${userId};`;
+  if (rows.length === 0) return { success: false, message: "Usuario no encontrado" };
+  const r = rows[0];
+
+  if (!verifyPassword(oldPassword, r.password_hash)) {
+    return { success: false, message: "La contraseña actual no es correcta" };
+  }
+
+  const newHash = hashPassword(newPassword);
+  await client`UPDATE usuarios SET password_hash = ${newHash} WHERE id = ${userId};`;
+  return { success: true, message: "Contraseña actualizada exitosamente" };
 }

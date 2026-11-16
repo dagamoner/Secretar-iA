@@ -2,7 +2,7 @@
 
 import React from "react";
 import { Area, Usuario } from "@/types";
-import { Layers, Wifi, WifiOff, FileSpreadsheet, Plus, HelpCircle, Settings } from "lucide-react";
+import { Layers, Wifi, WifiOff, FileSpreadsheet, Plus, HelpCircle, Settings, LogOut, Key } from "lucide-react";
 import { getExcelExportUrl } from "@/lib/api";
 
 interface HeaderProps {
@@ -16,6 +16,8 @@ interface HeaderProps {
   onOpenNewDoc: () => void;
   onOpenHelp: () => void;
   onOpenAdmin: () => void;
+  onLogout: () => void;
+  onOpenChangePassword: () => void;
 }
 
 export function Header({
@@ -29,6 +31,8 @@ export function Header({
   onOpenNewDoc,
   onOpenHelp,
   onOpenAdmin,
+  onLogout,
+  onOpenChangePassword,
 }: HeaderProps) {
   const exportUrl = getExcelExportUrl(currentAreaId);
 
@@ -98,24 +102,32 @@ export function Header({
           )}
         </div>
 
-        {/* User Selection */}
-        {usuarios.length > 0 && (
-          <div className="flex items-center space-x-1.5 rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs dark:border-slate-700 dark:bg-slate-800">
-            <span className="font-semibold text-slate-500 dark:text-slate-400">👤 Secretaria:</span>
-            <select
-              value={currentUser?.id || ""}
-              onChange={(e) => {
-                const found = usuarios.find((u) => u.id === Number(e.target.value));
-                if (found) onUserChange(found);
-              }}
-              className="cursor-pointer bg-transparent font-bold text-blue-700 dark:text-blue-400 focus:outline-none"
+        {/* Authenticated Secretary Profile */}
+        {currentUser && (
+          <div className="flex items-center space-x-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-xs dark:border-slate-700 dark:bg-slate-800">
+            <span className="font-semibold text-slate-500 dark:text-slate-400">👤</span>
+            <span className="font-bold text-slate-900 dark:text-white">{currentUser.nombre_completo}</span>
+            <span className="rounded bg-blue-100 px-1 py-0.2 text-[9px] font-bold text-blue-700 dark:bg-blue-900/60 dark:text-blue-300">
+              {currentUser.rol}
+            </span>
+
+            {/* Change Password */}
+            <button
+              onClick={onOpenChangePassword}
+              title="Cambiar mi contraseña"
+              className="ml-1 rounded p-1 text-slate-400 hover:bg-slate-200 hover:text-slate-700 dark:hover:bg-slate-700 dark:hover:text-white"
             >
-              {usuarios.map((u) => (
-                <option key={u.id} value={u.id} className="dark:bg-slate-900 text-slate-900">
-                  {u.nombre_completo}
-                </option>
-              ))}
-            </select>
+              <Key className="h-3.5 w-3.5" />
+            </button>
+
+            {/* Logout */}
+            <button
+              onClick={onLogout}
+              title="Cerrar sesión"
+              className="rounded p-1 text-rose-500 hover:bg-rose-50 hover:text-rose-700 dark:hover:bg-rose-950/40"
+            >
+              <LogOut className="h-3.5 w-3.5" />
+            </button>
           </div>
         )}
 
