@@ -683,3 +683,204 @@ export async function dbRegistrarMovimiento(data: any): Promise<Movimiento> {
     fecha_formateada: now.toLocaleDateString("es-AR") + " " + hora,
   };
 }
+
+// -------------------------------------------------------------
+// ADMINISTRACIÓN: ÁREAS, USUARIOS, DESTINOS Y BATCH IMPORT (ETL)
+// -------------------------------------------------------------
+
+export async function dbCreateArea(data: { nombre: string; codigo: string; descripcion?: string }): Promise<Area> {
+  const client = getDbClient();
+  const now = new Date().toISOString();
+  if (!client) {
+    const newArea: Area = {
+      id: memoryAreas.length + 1,
+      nombre: data.nombre.trim(),
+      codigo: data.codigo.trim().toUpperCase(),
+      descripcion: data.descripcion?.trim(),
+      activo: true,
+      created_at: now,
+    };
+    memoryAreas.push(newArea);
+    return newArea;
+  }
+
+  const res = await client`
+    INSERT INTO areas (nombre, codigo, descripcion, activo)
+    VALUES (${data.nombre.trim()}, ${data.codigo.trim().toUpperCase()}, ${data.descripcion?.trim() || null}, true)
+    RETURNING *;
+  `;
+  const r = res[0];
+  return {
+    id: r.id,
+    nombre: r.nombre,
+    codigo: r.codigo,
+    descripcion: r.descripcion,
+    activo: r.activo,
+    created_at: r.created_at?.toISOString() || now,
+  };
+}
+
+export async function dbDeleteArea(id: number): Promise<boolean> {
+  const client = getDbClient();
+  if (!client) {
+    memoryAreas = memoryAreas.filter((a) => a.id !== id);
+    return true;
+  }
+  await client`DELETE FROM areas WHERE id = ${id};`;
+  return true;
+}
+
+export async function dbCreateUsuario(data: { area_id: number; username: string; nombre_completo: string; rol?: string }): Promise<Usuario> {
+  const client = getDbClient();
+  if (!client) {
+    const newUser: Usuario = {
+      id: memoryUsers.length + 1,
+      area_id: data.area_id,
+      username: data.username.trim().toLowerCase(),
+      nombre_completo: data.nombre_completo.trim(),
+      rol: data.rol || "OPERADOR",
+      activo: true,
+    };
+    memoryUsers.push(newUser);
+    return newUser;
+  }
+
+  const res = await client`
+    INSERT INTO usuarios (area_id, username, nombre_completo, rol, activo)
+    VALUES (${data.area_id}, ${data.username.trim().toLowerCase()}, ${data.nombre_completo.trim()}, ${data.rol || 'OPERADOR'}, true)
+    RETURNING *;
+  `;
+  const r = res[0];
+  return {
+    id: r.id,
+    area_id: r.area_id,
+    username: r.username,
+    nombre_completo: r.nombre_completo,
+    rol: r.rol,
+    activo: r.activo,
+  };
+}
+
+export async function dbDeleteUsuario(id: number): Promise<boolean> {
+  const client = getDbClient();
+  if (!client) {
+    memoryUsers = memoryUsers.filter((u) => u.id !== id);
+    return true;
+  }
+  await client`DELETE FROM usuarios WHERE id = ${id};`;
+  return true;
+}
+
+export async function dbCreateDestino(data: { area_id: number; nombre: string; responsable_defecto?: string }): Promise<CatalogoDestino> {
+  const client = getDbClient();
+  if (!client) {
+    const newDest: CatalogoDestino = {
+      id: memoryDestinos.length + 1,
+      area_id: data.area_id,
+      nombre: data.nombre.trim(),
+      responsable_defecto: data.responsable_defecto?.trim(),
+      activo: true,
+    };
+    memoryDestinos.push(newDest);
+    return newDest;
+  }
+
+  const res = await client`
+    INSERT INTO catalogos_destinos (area_id, nombre, responsable_defecto, activo)
+    VALUES (${data.area_id}, ${data.nombre.trim()}, ${data.responsable_defecto?.trim() || null}, true)
+    RETURNING *;
+  `;
+  const r = res[0];
+  return {
+    id: r.id,
+    area_id: r.area_id,
+    nombre: r.nombre,
+    responsable_defecto: r.responsable_defecto,
+    activo: r.activo,
+  };
+}
+
+export async function dbDeleteDestino(id: number): Promise<boolean> {
+  const client = getDbClient();
+  if (!client) {
+    memoryDestinos = memoryDestinos.filter((d) => d.id !== id);
+    return true;
+  }
+  await client`DELETE FROM catalogos_destinos WHERE id = ${id};`;
+  return true;
+}
+
+export async function dbImportarDocumentosBatch(
+  areaId: number,
+  items: Array<{
+    numero_expediente: string;
+    tipo_documento?: string;
+    anio?: number;
+    iniciador_caratula: string;
+    extracto?: string;
+    estado_actual?: string;
+    destino_actual?: string;
+    portador_actual?: string;
+    foja_actual?: number;
+    prioridad?: string;
+    fecha_ingreso?: string;
+    observacion?: string;
+  }>,
+  userName: string = "Importador Masivo Excel"
+): Promise<{ importados: number; actualizados: number; errores: number }> {
+  let importados = 0;
+  let actualizados = 0;
+  let errores = 0;
+
+  for (const item of items) {
+    try {
+      if (!item.numero_expediente || !item.iniciador_caratula) {
+        errores++;
+        continue;
+      }
+      await dbCreateDocumento({
+        area_id: areaId,
+        numero_expediente: item.numero_expediente.trim(),
+        tipo_documento: item.tipo_documento || "EXPEDIENTE",
+        anio: item.anio || new Date().getFullYear(),
+        iniciador_caratula: item.iniciador_caratula.trim(),
+        extracto: item.extracto?.trim() || undefined,
+        estado_actual: item.estado_actual?.toUpperCase() || "INICIADO",
+        destino_actual: item.destino_actual?.trim() || "Mesa de Entradas",
+        portador_actual: item.portador_actual?.trim() || "Mesa de Entradas",
+        foja_actual: Number(item.foja_actual) || 1,
+        prioridad: item.prioridad?.toUpperCase() || "NORMAL",
+        creado_por_nombre: userName,
+        observacion_inicial: item.observacion || "Migrado desde planilla Excel histórica.",
+      });
+      importados++;
+    } catch (e) {
+      errores++;
+    }
+  }
+
+  return { importados, actualizados, errores };
+}
+
+export async function dbLimpiarDatosPrueba(areaId?: number): Promise<{ limpiados: boolean }> {
+  const client = getDbClient();
+  if (!client) {
+    if (areaId) {
+      memoryDocs = memoryDocs.filter((d) => d.area_id !== areaId);
+      memoryMovimientos = memoryMovimientos.filter((m) => m.area_id !== areaId);
+    } else {
+      memoryDocs = [];
+      memoryMovimientos = [];
+    }
+    return { limpiados: true };
+  }
+
+  if (areaId) {
+    await client`DELETE FROM movimientos WHERE area_id = ${areaId};`;
+    await client`DELETE FROM documentos WHERE area_id = ${areaId};`;
+  } else {
+    await client`DELETE FROM movimientos;`;
+    await client`DELETE FROM documentos;`;
+  }
+  return { limpiados: true };
+}

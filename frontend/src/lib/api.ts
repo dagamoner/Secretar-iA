@@ -118,3 +118,84 @@ export function getExcelExportUrl(areaId: number, filters?: Partial<FilterState>
   if (filters?.prioridad && filters.prioridad !== "TODOS") params.set("prioridad", filters.prioridad);
   return `${API_BASE}/documentos/export/excel?${params.toString()}`;
 }
+
+// -------------------------------------------------------------
+// ADMINISTRACIÓN: ÁREAS, USUARIOS, DESTINOS Y BATCH IMPORT (ETL)
+// -------------------------------------------------------------
+
+export async function crearArea(data: { nombre: string; codigo: string; descripcion?: string }): Promise<Area> {
+  const res = await fetch(`${API_BASE}/areas`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.detail || "Error al crear área");
+  }
+  return res.json();
+}
+
+export async function eliminarArea(id: number): Promise<boolean> {
+  const res = await fetch(`${API_BASE}/areas?id=${id}`, { method: "DELETE" });
+  if (!res.ok) throw new Error("Error al eliminar área");
+  return true;
+}
+
+export async function crearUsuario(data: { area_id: number; username: string; nombre_completo: string; rol?: string }): Promise<Usuario> {
+  const res = await fetch(`${API_BASE}/catalogos/usuarios`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.detail || "Error al crear usuario");
+  }
+  return res.json();
+}
+
+export async function eliminarUsuario(id: number): Promise<boolean> {
+  const res = await fetch(`${API_BASE}/catalogos/usuarios?id=${id}`, { method: "DELETE" });
+  if (!res.ok) throw new Error("Error al eliminar usuario");
+  return true;
+}
+
+export async function crearDestino(data: { area_id: number; nombre: string; responsable_defecto?: string }): Promise<CatalogoDestino> {
+  const res = await fetch(`${API_BASE}/catalogos/destinos`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.detail || "Error al crear destino");
+  }
+  return res.json();
+}
+
+export async function eliminarDestino(id: number): Promise<boolean> {
+  const res = await fetch(`${API_BASE}/catalogos/destinos?id=${id}`, { method: "DELETE" });
+  if (!res.ok) throw new Error("Error al eliminar destino");
+  return true;
+}
+
+export async function importarExcelBatch(areaId: number, items: any[], userName: string): Promise<{ importados: number; actualizados: number; errores: number }> {
+  const res = await fetch(`${API_BASE}/importar-excel`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ area_id: areaId, items, user_name: userName }),
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.detail || "Error al importar lote Excel");
+  }
+  return res.json();
+}
+
+export async function limpiarDatosDemo(areaId?: number): Promise<boolean> {
+  const url = areaId ? `${API_BASE}/limpiar-demo?area_id=${areaId}` : `${API_BASE}/limpiar-demo`;
+  const res = await fetch(url, { method: "POST" });
+  if (!res.ok) throw new Error("Error al limpiar datos");
+  return true;
+}

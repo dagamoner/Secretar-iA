@@ -2,7 +2,7 @@
 
 import React from "react";
 import { Area, Usuario } from "@/types";
-import { Layers, Wifi, WifiOff, FileSpreadsheet, Plus, HelpCircle } from "lucide-react";
+import { Layers, Wifi, WifiOff, FileSpreadsheet, Plus, HelpCircle, Settings } from "lucide-react";
 import { getExcelExportUrl } from "@/lib/api";
 
 interface HeaderProps {
@@ -15,6 +15,7 @@ interface HeaderProps {
   isWsConnected: boolean;
   onOpenNewDoc: () => void;
   onOpenHelp: () => void;
+  onOpenAdmin: () => void;
 }
 
 export function Header({
@@ -27,6 +28,7 @@ export function Header({
   isWsConnected,
   onOpenNewDoc,
   onOpenHelp,
+  onOpenAdmin,
 }: HeaderProps) {
   const exportUrl = getExcelExportUrl(currentAreaId);
 
@@ -127,6 +129,16 @@ export function Header({
           <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-600" />
           <span>Exportar Excel</span>
         </a>
+
+        {/* Administration & ETL Settings */}
+        <button
+          onClick={onOpenAdmin}
+          className="inline-flex items-center space-x-1 rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50 transition dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+          title="Administración de Áreas, Oficinas y Migrador Excel"
+        >
+          <Settings className="h-3.5 w-3.5 text-blue-600" />
+          <span>Configuración & ETL</span>
+        </button>
 
         {/* Shortcuts Help */}
         <button

@@ -18,8 +18,12 @@ import { DenseDocumentTable } from "@/components/DenseDocumentTable";
 import { MovementDrawer } from "@/components/MovementDrawer";
 import { NewDocumentModal } from "@/components/NewDocumentModal";
 import { KeyboardShortcutsHelp } from "@/components/KeyboardShortcutsHelp";
+import { AdminModal } from "@/components/AdminModal";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function HomePage() {
+  const queryClient = useQueryClient();
+
   // Area Multi-Tenant State
   const [currentAreaId, setCurrentAreaId] = useState<number>(1);
   const [currentUser, setCurrentUser] = useState<Usuario | null>(null);
@@ -29,6 +33,7 @@ export default function HomePage() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isNewDocOpen, setIsNewDocOpen] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
+  const [isAdminOpen, setIsAdminOpen] = useState(false);
 
   // Keyboard navigation & search trigger state
   const [selectedIndex, setSelectedIndex] = useState<number>(0);
@@ -150,6 +155,7 @@ export default function HomePage() {
         isWsConnected={isConnected}
         onOpenNewDoc={() => setIsNewDocOpen(true)}
         onOpenHelp={() => setIsHelpOpen(true)}
+        onOpenAdmin={() => setIsAdminOpen(true)}
       />
 
       {/* Instant Filter Bar */}
@@ -212,6 +218,22 @@ export default function HomePage() {
       <KeyboardShortcutsHelp
         isOpen={isHelpOpen}
         onClose={() => setIsHelpOpen(false)}
+      />
+
+      {/* Administration, Organization & Excel ETL Modal */}
+      <AdminModal
+        isOpen={isAdminOpen}
+        onClose={() => setIsAdminOpen(false)}
+        areas={areas}
+        currentAreaId={currentAreaId}
+        usuarios={usuarios}
+        catalogosDestinos={catalogosDestinos}
+        onRefetchData={() => {
+          queryClient.invalidateQueries({ queryKey: ["areas"] });
+          queryClient.invalidateQueries({ queryKey: ["usuarios", currentAreaId] });
+          queryClient.invalidateQueries({ queryKey: ["catalogosDestinos", currentAreaId] });
+          queryClient.invalidateQueries({ queryKey: ["documentos", currentAreaId] });
+        }}
       />
     </div>
   );
