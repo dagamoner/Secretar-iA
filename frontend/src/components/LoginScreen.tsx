@@ -15,6 +15,7 @@ export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const passwordInputRef = React.useRef<HTMLInputElement>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,8 +38,11 @@ export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
 
   const setPredefinedUser = (userKey: string) => {
     setUsername(userKey);
-    setPassword(userKey === "vaninapardo" ? "vanina2026" : "betiana2026");
+    setPassword(""); // NUNCA precargar la contraseña: debe ingresarla la secretaria
     setErrorMsg("");
+    setTimeout(() => {
+      passwordInputRef.current?.focus();
+    }, 50);
   };
 
   return (
@@ -124,9 +128,10 @@ export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
             <div className="relative">
               <Lock className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
               <input
+                ref={passwordInputRef}
                 type={showPassword ? "text" : "password"}
                 required
-                placeholder="••••••••"
+                placeholder="Ingresa tu contraseña"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full rounded-lg border border-slate-200 bg-white pl-9 pr-10 py-2 text-xs text-slate-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
