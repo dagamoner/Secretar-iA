@@ -100,18 +100,18 @@ export function Header({
 
         {/* User Selection */}
         {usuarios.length > 0 && (
-          <div className="flex items-center space-x-1.5 text-xs text-slate-600 dark:text-slate-300">
-            <span className="text-slate-400">Operador:</span>
+          <div className="flex items-center space-x-1.5 rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs dark:border-slate-700 dark:bg-slate-800">
+            <span className="font-semibold text-slate-500 dark:text-slate-400">👤 Secretaria:</span>
             <select
               value={currentUser?.id || ""}
               onChange={(e) => {
                 const found = usuarios.find((u) => u.id === Number(e.target.value));
                 if (found) onUserChange(found);
               }}
-              className="rounded border border-slate-200 bg-white px-2 py-1 font-semibold text-slate-800 shadow-sm focus:outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+              className="cursor-pointer bg-transparent font-bold text-blue-700 dark:text-blue-400 focus:outline-none"
             >
               {usuarios.map((u) => (
-                <option key={u.id} value={u.id} className="dark:bg-slate-900">
+                <option key={u.id} value={u.id} className="dark:bg-slate-900 text-slate-900">
                   {u.nombre_completo}
                 </option>
               ))}

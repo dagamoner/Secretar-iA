@@ -24,10 +24,8 @@ let memoryAreas: Area[] = [
 ];
 
 let memoryUsers: Usuario[] = [
-  { id: 1, area_id: 1, username: "marianalopez", nombre_completo: "Mariana López (Mesa Central)", rol: "OPERADOR", activo: true },
-  { id: 2, area_id: 1, username: "carlos.admin", nombre_completo: "Lic. Carlos Menéndez", rol: "ADMIN", activo: true },
-  { id: 3, area_id: 2, username: "roberto.despacho", nombre_completo: "Roberto Silva (Despacho)", rol: "SUPERVISOR", activo: true },
-  { id: 4, area_id: 3, username: "andres.abogado", nombre_completo: "Dr. Andrés Suárez", rol: "OPERADOR", activo: true },
+  { id: 1, area_id: 1, username: "vaninapardo", nombre_completo: "Vanina Pardo", rol: "OPERADOR", activo: true },
+  { id: 2, area_id: 1, username: "betianasalinas", nombre_completo: "Betiana Salinas", rol: "OPERADOR", activo: true },
 ];
 
 let memoryDestinos: CatalogoDestino[] = [
@@ -300,6 +298,20 @@ export async function ensureDbInitialized() {
   if (!client) return;
   try {
     await initializeVercelDb();
+
+    // Ensure Vanina Pardo and Betiana Salinas exist in PostgreSQL
+    await client`
+      INSERT INTO usuarios (area_id, username, nombre_completo, rol, activo)
+      VALUES 
+        (1, 'vaninapardo', 'Vanina Pardo', 'OPERADOR', true),
+        (1, 'betianasalinas', 'Betiana Salinas', 'OPERADOR', true)
+      ON CONFLICT (username) DO UPDATE 
+      SET nombre_completo = EXCLUDED.nombre_completo, activo = true;
+    `;
+
+    // Purge mock demo users
+    await client`DELETE FROM usuarios WHERE username IN ('marianalopez', 'carlos.admin');`;
+
     isDbInitialized = true;
   } catch (e) {
     console.warn("ensureDbInitialized warning:", e);
