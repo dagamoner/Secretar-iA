@@ -11,6 +11,7 @@ interface ShortcutHandlers {
   onEscape?: () => void;
   onToggleHelp?: () => void;
   onToggleDashboard?: () => void;
+  onToggleViewMode?: () => void;
 }
 
 export function useKeyboardShortcuts({
@@ -22,6 +23,7 @@ export function useKeyboardShortcuts({
   onEscape,
   onToggleHelp,
   onToggleDashboard,
+  onToggleViewMode,
 }: ShortcutHandlers) {
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -68,6 +70,13 @@ export function useKeyboardShortcuts({
         return;
       }
 
+      // Shortcut: Toggle View Mode (v or Alt+V) - Tabla vs Kanban
+      if (e.key.toLowerCase() === "v" || (e.altKey && e.key.toLowerCase() === "v")) {
+        e.preventDefault();
+        onToggleViewMode?.();
+        return;
+      }
+
       // Shortcut: Pass / Movement (p or Enter)
       if (e.key.toLowerCase() === "p" || e.key === "Enter") {
         e.preventDefault();
@@ -106,5 +115,6 @@ export function useKeyboardShortcuts({
     onEscape,
     onToggleHelp,
     onToggleDashboard,
+    onToggleViewMode,
   ]);
 }

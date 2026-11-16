@@ -2,7 +2,7 @@
 
 import React, { useRef, useEffect } from "react";
 import { FilterState } from "@/types";
-import { Search, X, RotateCcw, BarChart3 } from "lucide-react";
+import { Search, X, RotateCcw, BarChart3, Table as TableIcon, LayoutGrid } from "lucide-react";
 
 interface FilterToolbarProps {
   filters: FilterState;
@@ -22,6 +22,8 @@ interface FilterToolbarProps {
     misTramites: number;
   };
   onOpenDashboard?: () => void;
+  viewMode?: "tabla" | "kanban";
+  onViewModeChange?: (mode: "tabla" | "kanban") => void;
 }
 
 export function FilterToolbar({
@@ -34,6 +36,8 @@ export function FilterToolbar({
   currentUserName,
   stats,
   onOpenDashboard,
+  viewMode = "tabla",
+  onViewModeChange,
 }: FilterToolbarProps) {
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -327,11 +331,43 @@ export function FilterToolbar({
           )}
         </div>
 
-        {/* Live Records Counter */}
-        <div className="flex items-center space-x-2 text-[11px] font-semibold text-slate-500 dark:text-slate-400">
-          <span className="rounded-md bg-slate-100 px-2 py-0.5 text-slate-800 font-bold dark:bg-slate-800 dark:text-slate-200">
+        {/* Live Records Counter & View Switcher */}
+        <div className="flex items-center space-x-3 text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+          <span className="rounded-md bg-slate-100 px-2 py-1 text-slate-800 font-bold dark:bg-slate-800 dark:text-slate-200">
             {totalRegistros.toLocaleString("es-AR")} trámites
           </span>
+
+          {/* View Mode Switcher */}
+          {onViewModeChange && (
+            <div className="flex items-center rounded-lg border border-slate-200 bg-slate-100/80 p-0.5 text-xs dark:border-slate-700 dark:bg-slate-800">
+              <button
+                type="button"
+                onClick={() => onViewModeChange("tabla")}
+                className={`flex items-center space-x-1.5 rounded-md px-2.5 py-1 text-xs font-bold transition ${
+                  viewMode === "tabla"
+                    ? "bg-white text-blue-700 shadow-2xs dark:bg-slate-700 dark:text-white"
+                    : "text-slate-600 hover:text-slate-900 dark:text-slate-400"
+                }`}
+                title="Vista Grilla de Alta Densidad (1)"
+              >
+                <TableIcon className="h-3.5 w-3.5" />
+                <span>Tabla</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => onViewModeChange("kanban")}
+                className={`flex items-center space-x-1.5 rounded-md px-2.5 py-1 text-xs font-bold transition ${
+                  viewMode === "kanban"
+                    ? "bg-white text-blue-700 shadow-2xs dark:bg-slate-700 dark:text-white"
+                    : "text-slate-600 hover:text-slate-900 dark:text-slate-400"
+                }`}
+                title="Vista Tablero Kanban de Trazabilidad (2)"
+              >
+                <LayoutGrid className="h-3.5 w-3.5" />
+                <span>Kanban</span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

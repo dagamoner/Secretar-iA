@@ -16,6 +16,7 @@ export function KeyboardShortcutsHelp({ isOpen, onClose }: KeyboardShortcutsHelp
     { key: "Ctrl + K", desc: "Búsqueda rápida universal" },
     { key: "N", desc: "Abrir modal de nuevo trámite / caratulación" },
     { key: "D", desc: "Abrir Dashboard interactivo de movimientos y flujo documental" },
+    { key: "V", desc: "Alternar modo de vista (Tabla Grilla / Tablero Kanban)" },
     { key: "P ó Enter", desc: "Abrir drawer de nuevo pase para el trámite seleccionado" },
     { key: "↓ / J", desc: "Navegar hacia la siguiente fila en la grilla" },
     { key: "↑ / K", desc: "Navegar hacia la fila anterior en la grilla" },

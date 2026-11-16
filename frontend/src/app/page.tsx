@@ -15,6 +15,7 @@ import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { Header } from "@/components/Header";
 import { FilterToolbar } from "@/components/FilterToolbar";
 import { DenseDocumentTable } from "@/components/DenseDocumentTable";
+import { KanbanBoard } from "@/components/KanbanBoard";
 import { MovementDrawer } from "@/components/MovementDrawer";
 import { NewDocumentModal } from "@/components/NewDocumentModal";
 import { KeyboardShortcutsHelp } from "@/components/KeyboardShortcutsHelp";
@@ -44,6 +45,7 @@ export default function HomePage() {
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [isDashboardOpen, setIsDashboardOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<"tabla" | "kanban">("tabla");
 
   // Keyboard navigation & search trigger state
   const [selectedIndex, setSelectedIndex] = useState<number>(0);
@@ -246,6 +248,7 @@ export default function HomePage() {
     },
     onToggleHelp: () => setIsHelpOpen((prev) => !prev),
     onToggleDashboard: () => setIsDashboardOpen((prev) => !prev),
+    onToggleViewMode: () => setViewMode((prev) => (prev === "tabla" ? "kanban" : "tabla")),
   });
 
   // Loading screen while checking authentication session
@@ -399,14 +402,28 @@ export default function HomePage() {
         currentUserName={currentUser?.nombre_completo}
         stats={stats}
         onOpenDashboard={() => setIsDashboardOpen(true)}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
       />
 
-      {/* Dense High-Speed Document Grid */}
+      {/* Dense High-Speed Document Grid or Kanban Board */}
       <main className="flex flex-1 overflow-hidden">
         {isLoadingDocs && todosLosDocumentos.length === 0 ? (
           <div className="flex flex-1 items-center justify-center text-xs text-slate-400">
             Cargando trazabilidad documental del área...
           </div>
+        ) : viewMode === "kanban" ? (
+          <KanbanBoard
+            documentos={documentos}
+            selectedDocId={selectedDoc?.id || null}
+            onSelectDoc={(doc) => {
+              setSelectedDoc(doc);
+            }}
+            onOpenMovementDrawer={(doc) => {
+              setSelectedDoc(doc);
+              setIsDrawerOpen(true);
+            }}
+          />
         ) : (
           <DenseDocumentTable
             data={documentos}
