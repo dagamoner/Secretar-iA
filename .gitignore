@@ -5,14 +5,14 @@ __pycache__/
 *.so
 .Python
 env/
+venv/
+.venv/
 build/
 develop-eggs/
 dist/
 downloads/
 eggs/
 .eggs/
-lib/
-lib64/
 parts/
 sdist/
 var/
@@ -23,6 +23,9 @@ wheels/
 .env
 *.sqlite3
 *.db
+
+# Never ignore frontend source code
+!frontend/src/**
 
 # Node / Frontend
 node_modules/

@@ -1,0 +1,120 @@
+import { Documento, Movimiento, Area, CatalogoDestino, Usuario, FilterState } from "@/types";
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "/api";
+
+export async function fetchAreas(): Promise<Area[]> {
+  const res = await fetch(`${API_BASE}/areas`);
+  if (!res.ok) throw new Error("Error al obtener áreas");
+  return res.json();
+}
+
+export async function fetchCatalogosDestinos(areaId: number): Promise<CatalogoDestino[]> {
+  const res = await fetch(`${API_BASE}/catalogos/destinos?area_id=${areaId}`);
+  if (!res.ok) throw new Error("Error al obtener catálogo de destinos");
+  return res.json();
+}
+
+export async function fetchUsuarios(areaId: number): Promise<Usuario[]> {
+  const res = await fetch(`${API_BASE}/catalogos/usuarios?area_id=${areaId}`);
+  if (!res.ok) throw new Error("Error al obtener usuarios");
+  return res.json();
+}
+
+export async function fetchDocumentos(areaId: number, filters?: Partial<FilterState>): Promise<Documento[]> {
+  const params = new URLSearchParams();
+  params.set("area_id", String(areaId));
+  if (filters?.search) params.set("search", filters.search);
+  if (filters?.estado && filters.estado !== "TODOS") params.set("estado", filters.estado);
+  if (filters?.portador && filters.portador !== "TODOS") params.set("portador", filters.portador);
+  if (filters?.destino && filters.destino !== "TODOS") params.set("destino", filters.destino);
+  if (filters?.prioridad && filters.prioridad !== "TODOS") params.set("prioridad", filters.prioridad);
+
+  const res = await fetch(`${API_BASE}/documentos?${params.toString()}`);
+  if (!res.ok) throw new Error("Error al obtener documentos");
+  return res.json();
+}
+
+export async function fetchDocumentoDetalle(docId: number, areaId: number): Promise<Documento> {
+  const res = await fetch(`${API_BASE}/documentos/${docId}?area_id=${areaId}`);
+  if (!res.ok) throw new Error("Error al obtener detalle del documento");
+  return res.json();
+}
+
+export async function crearDocumento(data: {
+  area_id: number;
+  numero_expediente: string;
+  tipo_documento: string;
+  anio: number;
+  iniciador_caratula: string;
+  extracto?: string;
+  estado_actual: string;
+  destino_actual: string;
+  portador_actual: string;
+  foja_actual: number;
+  prioridad: string;
+  creado_por_id?: number;
+  creado_por_nombre?: string;
+  observacion_inicial?: string;
+}): Promise<Documento> {
+  const res = await fetch(`${API_BASE}/documentos`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.detail || "Error al crear documento");
+  }
+  return res.json();
+}
+
+export async function registrarMovimiento(data: {
+  area_id: number;
+  documento_id: number;
+  estado_nuevo: string;
+  destino_nuevo: string;
+  portador_nuevo: string;
+  fojas_agregadas: number;
+  observacion?: string;
+  usuario_id?: number;
+  usuario_nombre?: string;
+}): Promise<Movimiento> {
+  const res = await fetch(`${API_BASE}/movimientos`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.detail || "Error al registrar movimiento");
+  }
+  return res.json();
+}
+
+export async function emitEditingNotice(areaId: number, docId: number, userName: string, isEditing: boolean) {
+  try {
+    await fetch(`${API_BASE}/events/editing`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        area_id: areaId,
+        doc_id: docId,
+        user_name: userName,
+        is_editing: isEditing,
+      }),
+    });
+  } catch (e) {
+    // Fail silently on editing heartbeat
+  }
+}
+
+export function getExcelExportUrl(areaId: number, filters?: Partial<FilterState>): string {
+  const params = new URLSearchParams();
+  params.set("area_id", String(areaId));
+  if (filters?.search) params.set("search", filters.search);
+  if (filters?.estado && filters.estado !== "TODOS") params.set("estado", filters.estado);
+  if (filters?.portador && filters.portador !== "TODOS") params.set("portador", filters.portador);
+  if (filters?.destino && filters.destino !== "TODOS") params.set("destino", filters.destino);
+  if (filters?.prioridad && filters.prioridad !== "TODOS") params.set("prioridad", filters.prioridad);
+  return `${API_BASE}/documentos/export/excel?${params.toString()}`;
+}
