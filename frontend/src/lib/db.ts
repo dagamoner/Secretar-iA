@@ -351,6 +351,15 @@ export async function ensureDbInitialized() {
   }
 }
 
+function normalizeSearchText(str: string | null | undefined): string {
+  if (!str) return "";
+  return String(str)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
 // Data queries with fallback
 export async function dbGetAreas(): Promise<Area[]> {
   await ensureDbInitialized();
@@ -410,18 +419,37 @@ export async function dbGetDocumentos(areaId: number, filters?: Partial<FilterSt
   const client = getDbClient();
   if (!client) {
     let list = memoryDocs.filter((d) => d.area_id === areaId);
-    if (filters?.search) {
-      const q = filters.search.toLowerCase();
-      list = list.filter((d) => d.numero_expediente.toLowerCase().includes(q) || d.iniciador_caratula.toLowerCase().includes(q) || (d.extracto && d.extracto.toLowerCase().includes(q)));
+    if (filters?.search && filters.search.trim()) {
+      const q = normalizeSearchText(filters.search);
+      list = list.filter((d) => {
+        const num = normalizeSearchText(d.numero_expediente);
+        const cara = normalizeSearchText(d.iniciador_caratula);
+        const ext = normalizeSearchText(d.extracto);
+        const dest = normalizeSearchText(d.destino_actual);
+        const port = normalizeSearchText(d.portador_actual);
+        const tipo = normalizeSearchText(d.tipo_documento);
+        const anio = String(d.anio || "");
+        return (
+          num.includes(q) ||
+          cara.includes(q) ||
+          ext.includes(q) ||
+          dest.includes(q) ||
+          port.includes(q) ||
+          tipo.includes(q) ||
+          anio.includes(q)
+        );
+      });
     }
     if (filters?.estado && filters.estado !== "TODOS") {
       list = list.filter((d) => d.estado_actual === filters.estado);
     }
     if (filters?.portador && filters.portador !== "TODOS") {
-      list = list.filter((d) => d.portador_actual.toLowerCase().includes(filters.portador!.toLowerCase()));
+      const p = normalizeSearchText(filters.portador);
+      list = list.filter((d) => normalizeSearchText(d.portador_actual).includes(p));
     }
     if (filters?.destino && filters.destino !== "TODOS") {
-      list = list.filter((d) => d.destino_actual.toLowerCase().includes(filters.destino!.toLowerCase()));
+      const des = normalizeSearchText(filters.destino);
+      list = list.filter((d) => normalizeSearchText(d.destino_actual).includes(des));
     }
     if (filters?.prioridad && filters.prioridad !== "TODOS") {
       list = list.filter((d) => d.prioridad === filters.prioridad);
@@ -463,18 +491,37 @@ export async function dbGetDocumentos(areaId: number, filters?: Partial<FilterSt
       };
     });
 
-    if (filters?.search) {
-      const q = filters.search.toLowerCase();
-      result = result.filter((d) => d.numero_expediente.toLowerCase().includes(q) || d.iniciador_caratula.toLowerCase().includes(q) || (d.extracto && d.extracto.toLowerCase().includes(q)));
+    if (filters?.search && filters.search.trim()) {
+      const q = normalizeSearchText(filters.search);
+      result = result.filter((d) => {
+        const num = normalizeSearchText(d.numero_expediente);
+        const cara = normalizeSearchText(d.iniciador_caratula);
+        const ext = normalizeSearchText(d.extracto);
+        const dest = normalizeSearchText(d.destino_actual);
+        const port = normalizeSearchText(d.portador_actual);
+        const tipo = normalizeSearchText(d.tipo_documento);
+        const anio = String(d.anio || "");
+        return (
+          num.includes(q) ||
+          cara.includes(q) ||
+          ext.includes(q) ||
+          dest.includes(q) ||
+          port.includes(q) ||
+          tipo.includes(q) ||
+          anio.includes(q)
+        );
+      });
     }
     if (filters?.estado && filters.estado !== "TODOS") {
       result = result.filter((d) => d.estado_actual === filters.estado);
     }
     if (filters?.portador && filters.portador !== "TODOS") {
-      result = result.filter((d) => d.portador_actual.toLowerCase().includes(filters.portador!.toLowerCase()));
+      const p = normalizeSearchText(filters.portador);
+      result = result.filter((d) => normalizeSearchText(d.portador_actual).includes(p));
     }
     if (filters?.destino && filters.destino !== "TODOS") {
-      result = result.filter((d) => d.destino_actual.toLowerCase().includes(filters.destino!.toLowerCase()));
+      const des = normalizeSearchText(filters.destino);
+      result = result.filter((d) => normalizeSearchText(d.destino_actual).includes(des));
     }
     if (filters?.prioridad && filters.prioridad !== "TODOS") {
       result = result.filter((d) => d.prioridad === filters.prioridad);
@@ -482,6 +529,7 @@ export async function dbGetDocumentos(areaId: number, filters?: Partial<FilterSt
 
     return result;
   } catch (e) {
+    console.error("Error in dbGetDocumentos:", e);
     return memoryDocs.filter((d) => d.area_id === areaId);
   }
 }

@@ -39,6 +39,11 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
+# Local Data & Office Spreadsheets (Privacy & Security)
+*.xlsx
+*.xls
+*.csv
+
 # OS / IDE
 .DS_Store
 Thumbs.db

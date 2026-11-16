@@ -33,3 +33,12 @@ export function getPrioridadBadgeClass(prioridad: string): string {
       return "bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300";
   }
 }
+
+export function normalizeSearchText(str: string | null | undefined): string {
+  if (!str) return "";
+  return str
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}

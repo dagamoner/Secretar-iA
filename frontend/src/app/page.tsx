@@ -21,6 +21,7 @@ import { KeyboardShortcutsHelp } from "@/components/KeyboardShortcutsHelp";
 import { AdminModal } from "@/components/AdminModal";
 import { LoginScreen } from "@/components/LoginScreen";
 import { ChangePasswordModal } from "@/components/ChangePasswordModal";
+import { normalizeSearchText } from "@/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
 
 export default function HomePage() {
@@ -108,31 +109,79 @@ export default function HomePage() {
     }
   }, [usuarios, currentUser]);
 
-  const { data: documentos = [], isLoading: isLoadingDocs } = useQuery({
-    queryKey: ["documentos", currentAreaId, filters],
-    queryFn: () => fetchDocumentos(currentAreaId, filters),
+  // Fetch full area documents once (TanStack Query cached)
+  const { data: todosLosDocumentos = [], isLoading: isLoadingDocs } = useQuery({
+    queryKey: ["documentos", currentAreaId],
+    queryFn: () => fetchDocumentos(currentAreaId),
     enabled: !!currentAreaId,
   });
 
   // Real-Time WebSocket Hook (Emits events, invalidates TanStack cache, highlights rows for 3 seconds)
   const { isConnected, highlightedDocIds, activeEditors } = useRealtimeArea(currentAreaId);
 
-  // Distinct options for dropdown filters
+  // Distinct options for dropdown filters (always complete from all area documents)
   const destinosDisponibles = useMemo(() => {
     const set = new Set<string>();
-    documentos.forEach((d) => {
+    todosLosDocumentos.forEach((d) => {
       if (d.destino_actual) set.add(d.destino_actual);
     });
     return Array.from(set).sort();
-  }, [documentos]);
+  }, [todosLosDocumentos]);
 
   const portadoresDisponibles = useMemo(() => {
     const set = new Set<string>();
-    documentos.forEach((d) => {
+    todosLosDocumentos.forEach((d) => {
       if (d.portador_actual) set.add(d.portador_actual);
     });
     return Array.from(set).sort();
-  }, [documentos]);
+  }, [todosLosDocumentos]);
+
+  // Instant real-time filtered documents (0ms latency, accent-insensitive, null-safe)
+  const documentos = useMemo(() => {
+    let list = todosLosDocumentos;
+
+    if (filters.search && filters.search.trim()) {
+      const q = normalizeSearchText(filters.search);
+      list = list.filter((d) => {
+        const num = normalizeSearchText(d.numero_expediente);
+        const cara = normalizeSearchText(d.iniciador_caratula);
+        const ext = normalizeSearchText(d.extracto);
+        const dest = normalizeSearchText(d.destino_actual);
+        const port = normalizeSearchText(d.portador_actual);
+        const tipo = normalizeSearchText(d.tipo_documento);
+        const anio = String(d.anio || "");
+        return (
+          num.includes(q) ||
+          cara.includes(q) ||
+          ext.includes(q) ||
+          dest.includes(q) ||
+          port.includes(q) ||
+          tipo.includes(q) ||
+          anio.includes(q)
+        );
+      });
+    }
+
+    if (filters.estado && filters.estado !== "TODOS") {
+      list = list.filter((d) => d.estado_actual === filters.estado);
+    }
+
+    if (filters.portador && filters.portador !== "TODOS") {
+      const p = normalizeSearchText(filters.portador);
+      list = list.filter((d) => normalizeSearchText(d.portador_actual).includes(p));
+    }
+
+    if (filters.destino && filters.destino !== "TODOS") {
+      const des = normalizeSearchText(filters.destino);
+      list = list.filter((d) => normalizeSearchText(d.destino_actual).includes(des));
+    }
+
+    if (filters.prioridad && filters.prioridad !== "TODOS") {
+      list = list.filter((d) => d.prioridad === filters.prioridad);
+    }
+
+    return list;
+  }, [todosLosDocumentos, filters]);
 
   // Actions
   const handleOpenMovement = (doc?: Documento) => {
@@ -242,7 +291,7 @@ export default function HomePage() {
 
       {/* Dense High-Speed Document Grid */}
       <main className="flex flex-1 overflow-hidden">
-        {isLoadingDocs ? (
+        {isLoadingDocs && todosLosDocumentos.length === 0 ? (
           <div className="flex flex-1 items-center justify-center text-xs text-slate-400">
             Cargando trazabilidad documental del área...
           </div>
