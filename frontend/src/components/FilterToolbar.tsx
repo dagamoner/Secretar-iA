@@ -186,19 +186,33 @@ export function FilterToolbar({
           {/* KPI: Urgentes */}
           <button
             type="button"
-            onClick={() => updateField("prioridad", filters.prioridad === "URGENTE" ? "TODOS" : "URGENTE")}
+            onClick={() =>
+              updateField(
+                "prioridad",
+                filters.prioridad === "URGENTES_TODOS" || filters.prioridad === "URGENTE" || filters.prioridad === "PRONTO DESPACHO"
+                  ? "TODOS"
+                  : "URGENTES_TODOS"
+              )
+            }
             className={`flex items-center space-x-1.5 rounded-lg border px-2.5 py-1 text-xs font-semibold transition active:scale-95 shrink-0 ${
-              filters.prioridad === "URGENTE"
+              filters.prioridad === "URGENTES_TODOS" || filters.prioridad === "URGENTE" || filters.prioridad === "PRONTO DESPACHO"
                 ? "bg-red-600 text-white border-red-600 shadow-sm"
                 : "bg-red-50 text-red-700 border-red-200 hover:bg-red-100 dark:bg-red-950/40 dark:text-red-300 dark:border-red-800"
             }`}
+            title="Filtrar los 23 trámites prioritarios: 6 Urgentes + 17 Pronto Despacho"
           >
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
             </span>
             <span>⚡ Urgentes</span>
-            <span className="rounded-full bg-red-200 px-1.5 py-0.2 text-[10px] font-black text-red-900 dark:bg-red-900 dark:text-red-200">
+            <span
+              className={`rounded-full px-1.5 py-0.2 text-[10px] font-black ${
+                filters.prioridad === "URGENTES_TODOS" || filters.prioridad === "URGENTE" || filters.prioridad === "PRONTO DESPACHO"
+                  ? "bg-white text-red-700"
+                  : "bg-red-200 text-red-900 dark:bg-red-900 dark:text-red-200"
+              }`}
+            >
               {stats.urgentes}
             </span>
           </button>
@@ -408,10 +422,11 @@ export function FilterToolbar({
               onChange={(e) => updateField("prioridad", e.target.value)}
               className="cursor-pointer bg-transparent font-medium text-slate-800 focus:outline-none dark:text-slate-200"
             >
-              <option value="TODOS">Todas</option>
+              <option value="TODOS">Todas las prioridades</option>
+              <option value="URGENTES_TODOS">⚡ Urgentes y Pronto Despacho ({stats?.urgentes || 23})</option>
+              <option value="URGENTE">Solo URGENTE (6)</option>
+              <option value="PRONTO DESPACHO">Solo PRONTO DESPACHO (17)</option>
               <option value="NORMAL">NORMAL</option>
-              <option value="URGENTE">URGENTE</option>
-              <option value="PRONTO DESPACHO">PRONTO DESPACHO</option>
             </select>
           </div>
 

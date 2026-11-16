@@ -452,7 +452,11 @@ export async function dbGetDocumentos(areaId: number, filters?: Partial<FilterSt
       list = list.filter((d) => normalizeSearchText(d.destino_actual).includes(des));
     }
     if (filters?.prioridad && filters.prioridad !== "TODOS") {
-      list = list.filter((d) => d.prioridad === filters.prioridad);
+      if (filters.prioridad === "URGENTES_TODOS") {
+        list = list.filter((d) => d.prioridad === "URGENTE" || d.prioridad === "PRONTO DESPACHO");
+      } else {
+        list = list.filter((d) => d.prioridad === filters.prioridad);
+      }
     }
     return [...list].sort((a, b) => {
       const timeB = b.ultimo_movimiento_at ? new Date(b.ultimo_movimiento_at).getTime() : (b.fecha_ingreso ? new Date(b.fecha_ingreso).getTime() : 0);
@@ -528,7 +532,11 @@ export async function dbGetDocumentos(areaId: number, filters?: Partial<FilterSt
       result = result.filter((d) => normalizeSearchText(d.destino_actual).includes(des));
     }
     if (filters?.prioridad && filters.prioridad !== "TODOS") {
-      result = result.filter((d) => d.prioridad === filters.prioridad);
+      if (filters.prioridad === "URGENTES_TODOS") {
+        result = result.filter((d) => d.prioridad === "URGENTE" || d.prioridad === "PRONTO DESPACHO");
+      } else {
+        result = result.filter((d) => d.prioridad === filters.prioridad);
+      }
     }
 
     return result;

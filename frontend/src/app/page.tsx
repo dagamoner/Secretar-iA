@@ -266,7 +266,11 @@ export default function HomePage() {
     }
 
     if (filters.prioridad && filters.prioridad !== "TODOS") {
-      list = list.filter((d) => d.prioridad === filters.prioridad);
+      if (filters.prioridad === "URGENTES_TODOS") {
+        list = list.filter((d) => d.prioridad === "URGENTE" || d.prioridad === "PRONTO DESPACHO");
+      } else {
+        list = list.filter((d) => d.prioridad === filters.prioridad);
+      }
     }
 
     return list;
