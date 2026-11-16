@@ -1,0 +1,11 @@
+{
+  "name": "secretar-ia",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Sistema de Trazabilidad Documental Multi-Área (On-Premise & Vercel Cloud)",
+  "scripts": {
+    "dev": "npm --prefix frontend run dev",
+    "build": "npm --prefix frontend run build",
+    "start": "npm --prefix frontend run start"
+  }
+}
