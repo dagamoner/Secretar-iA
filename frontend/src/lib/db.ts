@@ -2,10 +2,14 @@ import { sql } from "@vercel/postgres";
 import { neon } from "@neondatabase/serverless";
 import { Area, Usuario, CatalogoDestino, Documento, Movimiento, FilterState } from "@/types";
 
-// Detect connection string
-const connectionString = process.env.POSTGRES_URL || process.env.DATABASE_URL;
-
 export function getDbClient() {
+  const connectionString =
+    process.env.POSTGRES_URL ||
+    process.env.DATABASE_URL ||
+    process.env.STORAGE_URL ||
+    process.env.NEON_DATABASE_URL ||
+    process.env.STORAGE_POSTGRES_URL;
+
   if (connectionString) {
     return neon(connectionString);
   }
