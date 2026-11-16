@@ -19,6 +19,7 @@ import {
   EyeOff,
   Layers,
   Sparkles,
+  Archive,
 } from "lucide-react";
 import { getEstadoBadgeClass, cn } from "@/lib/utils";
 
@@ -27,6 +28,7 @@ interface KanbanBoardProps {
   onOpenMovementDrawer: (doc: Documento) => void;
   onSelectDoc: (doc: Documento) => void;
   selectedDocId: number | null;
+  onArchivarDoc?: (doc: Documento) => void;
 }
 
 interface KanbanColumnDef {
@@ -110,6 +112,7 @@ export function KanbanBoard({
   onOpenMovementDrawer,
   onSelectDoc,
   selectedDocId,
+  onArchivarDoc,
 }: KanbanBoardProps) {
   const [copiedId, setCopiedId] = useState<number | null>(null);
   const [columnLimits, setColumnLimits] = useState<Record<string, number>>({});
@@ -463,20 +466,42 @@ export function KanbanBoard({
                           </div>
                         </div>
 
-                        {/* Action: Pase Button */}
+                        {/* Action: Pase or Archivar Button */}
                         <div className="mt-2.5 flex items-center justify-end">
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onOpenMovementDrawer(doc);
-                            }}
-                            className="inline-flex items-center space-x-1 rounded-md border border-blue-200 bg-blue-50 px-2 py-0.5 text-[10px] font-bold text-blue-700 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition active:scale-95 dark:border-blue-900/60 dark:bg-blue-950/40 dark:text-blue-300 dark:hover:bg-blue-600 dark:hover:text-white shadow-2xs"
-                            title="Registrar nuevo pase de área"
-                          >
-                            <span>Pase</span>
-                            <ArrowRight className="h-2.5 w-2.5" />
-                          </button>
+                          {doc.ultimo_movimiento_at ? (
+                            doc.estado_actual === "ARCHIVO" ? (
+                              <span className="inline-flex items-center space-x-1 rounded bg-slate-100 border border-slate-200 px-2 py-0.5 text-[10px] font-semibold text-slate-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400">
+                                <Archive className="h-3 w-3" />
+                                <span>Archivado</span>
+                              </span>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onArchivarDoc?.(doc);
+                                }}
+                                className="inline-flex items-center space-x-1 rounded-md border border-slate-300 bg-white px-2 py-0.5 text-[10px] font-bold text-slate-700 hover:bg-slate-800 hover:text-white hover:border-slate-800 transition active:scale-95 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 shadow-2xs"
+                                title={`El trámite ya egresó hacia ${doc.destino_actual || "su destino"}. Pasar a Archivo definitivo.`}
+                              >
+                                <Archive className="h-3 w-3 text-slate-500" />
+                                <span>Archivar</span>
+                              </button>
+                            )
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onOpenMovementDrawer(doc);
+                              }}
+                              className="inline-flex items-center space-x-1 rounded-md border border-blue-200 bg-blue-50 px-2 py-0.5 text-[10px] font-bold text-blue-700 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition active:scale-95 dark:border-blue-900/60 dark:bg-blue-950/40 dark:text-blue-300 dark:hover:bg-blue-600 dark:hover:text-white shadow-2xs"
+                              title="Registrar nuevo pase de área (trámite en oficina)"
+                            >
+                              <span>Pase</span>
+                              <ArrowRight className="h-2.5 w-2.5" />
+                            </button>
+                          )}
                         </div>
                       </div>
                     );

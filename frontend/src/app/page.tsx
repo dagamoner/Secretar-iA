@@ -7,6 +7,7 @@ import {
   fetchCatalogosDestinos,
   fetchUsuarios,
   fetchDocumentos,
+  registrarMovimiento,
 } from "@/lib/api";
 import { Area, Usuario, Documento, FilterState } from "@/types";
 import { useRealtimeArea } from "@/hooks/useRealtimeArea";
@@ -355,6 +356,32 @@ export default function HomePage() {
     XLSX.writeFile(workbook, `Secretaria_Privada_Expedientes_${todayStr}.xlsx`);
   };
 
+  // Handler for archiving a document that has already left the office
+  const handleArchivarDoc = async (doc: Documento) => {
+    const confirmArchivar = window.confirm(
+      `¿Deseas enviar el expediente ${doc.numero_expediente} a ARCHIVO definitivo?`
+    );
+    if (!confirmArchivar) return;
+
+    try {
+      await registrarMovimiento({
+        area_id: currentAreaId,
+        documento_id: doc.id,
+        estado_nuevo: "ARCHIVO",
+        destino_nuevo: "Archivo Central",
+        portador_nuevo: "Archivo",
+        fojas_agregadas: 0,
+        observacion: `Archivado por encontrarse tramitado y egresado del área hacia ${doc.destino_actual || "su destino"}.`,
+        usuario_id: currentUser?.id,
+        usuario_nombre: currentUser?.nombre_completo || "Operador",
+      });
+
+      queryClient.invalidateQueries({ queryKey: ["documentos", currentAreaId] });
+    } catch (e: any) {
+      alert("Error al archivar el documento: " + (e.message || "Error desconocido"));
+    }
+  };
+
   return (
     <div className="flex h-screen flex-col bg-white text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100">
       {/* Header Bar */}
@@ -423,6 +450,7 @@ export default function HomePage() {
               setSelectedDoc(doc);
               setIsDrawerOpen(true);
             }}
+            onArchivarDoc={handleArchivarDoc}
           />
         ) : (
           <DenseDocumentTable
@@ -438,6 +466,7 @@ export default function HomePage() {
               setSelectedDoc(doc);
               setIsDrawerOpen(true);
             }}
+            onArchivarDoc={handleArchivarDoc}
             highlightedDocIds={highlightedDocIds}
             activeEditors={activeEditors}
           />

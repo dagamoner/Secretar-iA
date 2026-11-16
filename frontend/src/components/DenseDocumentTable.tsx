@@ -27,6 +27,7 @@ import {
   Calendar,
   FileText,
   AlertTriangle,
+  Archive,
 } from "lucide-react";
 
 interface DenseDocumentTableProps {
@@ -34,6 +35,7 @@ interface DenseDocumentTableProps {
   selectedDocId: number | null;
   onSelectDoc: (doc: Documento) => void;
   onOpenMovementDrawer: (doc: Documento) => void;
+  onArchivarDoc?: (doc: Documento) => void;
   highlightedDocIds: Set<number>;
   activeEditors: Record<number, string>;
   selectedIndex: number;
@@ -44,6 +46,7 @@ export function DenseDocumentTable({
   selectedDocId,
   onSelectDoc,
   onOpenMovementDrawer,
+  onArchivarDoc,
   highlightedDocIds,
   activeEditors,
   selectedIndex,
@@ -345,9 +348,40 @@ export function DenseDocumentTable({
       {
         id: "acciones",
         header: "",
-        size: 75,
+        size: 85,
         cell: (info) => {
           const doc = info.row.original;
+          const hasSalida = Boolean(doc.ultimo_movimiento_at);
+          const isArchivado = doc.estado_actual === "ARCHIVO";
+
+          // If the document has a departure date, it is NOT in the office; it cannot have a Pase.
+          if (hasSalida) {
+            if (isArchivado) {
+              return (
+                <span className="inline-flex items-center space-x-1 rounded-md bg-slate-100 border border-slate-200 px-2 py-0.5 text-[10px] font-semibold text-slate-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400">
+                  <Archive className="h-3 w-3" />
+                  <span>Archivado</span>
+                </span>
+              );
+            }
+
+            return (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onArchivarDoc?.(doc);
+                }}
+                className="inline-flex items-center space-x-1 rounded-md border border-slate-300 bg-white px-2 py-1 text-[11px] font-bold text-slate-700 shadow-2xs hover:bg-slate-800 hover:text-white hover:border-slate-800 transition active:scale-95 dark:border-slate-700 dark:bg-slate-850 dark:text-slate-200 dark:hover:bg-slate-700"
+                title={`El documento ya egresó hacia ${doc.destino_actual || "su ámbito"}. Pasar a Archivo definitivo.`}
+              >
+                <Archive className="h-3 w-3 text-slate-500" />
+                <span>Archivar</span>
+              </button>
+            );
+          }
+
+          // Document is physically in the office, allow Pase
           return (
             <button
               onClick={(e) => {
@@ -364,7 +398,7 @@ export function DenseDocumentTable({
         },
       },
     ],
-    [highlightedDocIds, activeEditors, onOpenMovementDrawer, copiedId]
+    [highlightedDocIds, activeEditors, onOpenMovementDrawer, onArchivarDoc, copiedId]
   );
 
   const table = useReactTable({

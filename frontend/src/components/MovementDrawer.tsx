@@ -19,6 +19,7 @@ import {
   Building,
   Tag,
   ArrowUpRight,
+  Archive,
 } from "lucide-react";
 
 interface MovementDrawerProps {
@@ -63,6 +64,7 @@ export function MovementDrawer({
   const [observacion, setObservacion] = useState<string>("");
   const [errorMsg, setErrorMsg] = useState<string>("");
   const [copied, setCopied] = useState<boolean>(false);
+  const [isReingresoOpen, setIsReingresoOpen] = useState<boolean>(false);
 
   // Fetch full details and immutable movement history
   const { data: docDetalle, isLoading } = useQuery({
@@ -124,6 +126,23 @@ export function MovementDrawer({
   });
 
   if (!documento) return null;
+
+  const handleArchivarDirecto = () => {
+    if (!documento) return;
+    mutation.mutate({
+      area_id: areaId,
+      documento_id: documento.id,
+      estado_nuevo: "ARCHIVO",
+      destino_nuevo: "Archivo Central",
+      portador_nuevo: "Archivo",
+      fojas_agregadas: 0,
+      observacion:
+        "Archivado por encontrarse tramitado y egresado del área hacia " +
+        (documento.destino_actual || "destino"),
+      usuario_id: currentUser?.id,
+      usuario_nombre: currentUser?.nombre_completo || "Operador Despacho",
+    });
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -190,11 +209,60 @@ export function MovementDrawer({
 
       {/* Drawer Body */}
       <div className="flex-1 overflow-y-auto px-5 py-4 space-y-6">
-        {/* Rapid Pase Form */}
+        {/* Banner de Salida: El documento ya no está en la oficina */}
+        {documento.ultimo_movimiento_at && (
+          <div className="rounded-xl border border-amber-300 bg-amber-50/90 p-4 shadow-2xs dark:border-amber-900/60 dark:bg-amber-950/40">
+            <div className="flex items-start space-x-2.5">
+              <Building className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
+              <div>
+                <h4 className="text-xs font-bold text-amber-900 dark:text-amber-200">
+                  Documento Fuera de la Oficina (Con Fecha de Salida)
+                </h4>
+                <p className="mt-1 text-xs text-amber-800 dark:text-amber-300">
+                  Este expediente ya egresó de la Secretaría el{" "}
+                  <strong>{new Date(documento.ultimo_movimiento_at).toLocaleDateString("es-AR")}</strong>{" "}
+                  hacia <strong>{documento.destino_actual}</strong> (Retiró:{" "}
+                  <strong>{documento.portador_actual}</strong>). Por lo tanto, no se encuentra físicamente en el área para pases habituales.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-3.5 flex flex-wrap items-center gap-2 pt-2.5 border-t border-amber-200/80 dark:border-amber-900/60">
+              {documento.estado_actual !== "ARCHIVO" ? (
+                <button
+                  type="button"
+                  onClick={handleArchivarDirecto}
+                  disabled={mutation.isPending}
+                  className="inline-flex items-center space-x-1.5 rounded-lg bg-slate-900 px-3.5 py-1.5 text-xs font-bold text-white hover:bg-slate-800 transition active:scale-95 shadow-2xs"
+                >
+                  <Archive className="h-3.5 w-3.5" />
+                  <span>Pasar a Archivo Definitivo</span>
+                </button>
+              ) : (
+                <span className="inline-flex items-center space-x-1 text-xs font-bold text-emerald-700 dark:text-emerald-300">
+                  <Check className="h-4 w-4 text-emerald-600" />
+                  <span>El expediente se encuentra en Archivo Central</span>
+                </span>
+              )}
+
+              <button
+                type="button"
+                onClick={() => setIsReingresoOpen((prev) => !prev)}
+                className="inline-flex items-center space-x-1 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-100 transition active:scale-95 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+              >
+                <span>{isReingresoOpen ? "Ocultar formulario de reingreso" : "Registrar Reingreso Físico a Secretaría"}</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Rapid Pase Form - Solo visible si está en la oficina o si se abre expresamente para reingreso */}
+        {(!documento.ultimo_movimiento_at || isReingresoOpen) && (
         <section className="rounded-xl border border-blue-200/80 bg-blue-50/40 p-4 shadow-2xs dark:border-blue-900/50 dark:bg-blue-950/20">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-xs font-bold uppercase tracking-wider text-blue-900 dark:text-blue-300 flex items-center gap-1.5">
-              <Send className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" /> Registrar Nuevo Pase / Movimiento
+              <Send className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />{" "}
+              {isReingresoOpen ? "Registrar Reingreso y Nuevo Pase" : "Registrar Nuevo Pase / Movimiento"}
             </h3>
             <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
               Fojas actuales: <strong className="text-slate-900 dark:text-white font-mono">{documento.foja_actual}</strong>
@@ -350,6 +418,7 @@ export function MovementDrawer({
             </div>
           </form>
         </section>
+        )}
 
         {/* Immutable Audit Trail Section */}
         <section className="space-y-3">
