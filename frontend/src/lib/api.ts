@@ -196,6 +196,9 @@ export async function importarExcelBatch(areaId: number, items: any[], userName:
 export async function limpiarDatosDemo(areaId?: number): Promise<boolean> {
   const url = areaId ? `${API_BASE}/limpiar-demo?area_id=${areaId}` : `${API_BASE}/limpiar-demo`;
   const res = await fetch(url, { method: "POST" });
-  if (!res.ok) throw new Error("Error al limpiar datos");
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.detail || errorData.error || "Error al limpiar datos");
+  }
   return true;
 }

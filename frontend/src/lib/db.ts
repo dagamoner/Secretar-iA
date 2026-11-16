@@ -292,8 +292,23 @@ export async function initializeVercelDb() {
   }
 }
 
+let isDbInitialized = false;
+
+export async function ensureDbInitialized() {
+  if (isDbInitialized) return;
+  const client = getDbClient();
+  if (!client) return;
+  try {
+    await initializeVercelDb();
+    isDbInitialized = true;
+  } catch (e) {
+    console.warn("ensureDbInitialized warning:", e);
+  }
+}
+
 // Data queries with fallback
 export async function dbGetAreas(): Promise<Area[]> {
+  await ensureDbInitialized();
   const client = getDbClient();
   if (!client) return memoryAreas;
   try {
@@ -875,12 +890,27 @@ export async function dbLimpiarDatosPrueba(areaId?: number): Promise<{ limpiados
     return { limpiados: true };
   }
 
-  if (areaId) {
-    await client`DELETE FROM movimientos WHERE area_id = ${areaId};`;
-    await client`DELETE FROM documentos WHERE area_id = ${areaId};`;
-  } else {
-    await client`DELETE FROM movimientos;`;
-    await client`DELETE FROM documentos;`;
+  await ensureDbInitialized();
+
+  try {
+    if (areaId) {
+      await client`DELETE FROM movimientos WHERE area_id = ${areaId};`;
+      await client`DELETE FROM documentos WHERE area_id = ${areaId};`;
+    } else {
+      await client`DELETE FROM movimientos;`;
+      await client`DELETE FROM documentos;`;
+    }
+  } catch (err: any) {
+    console.warn("Aviso al limpiar:", err);
   }
+
+  if (areaId) {
+    memoryDocs = memoryDocs.filter((d) => d.area_id !== areaId);
+    memoryMovimientos = memoryMovimientos.filter((m) => m.area_id !== areaId);
+  } else {
+    memoryDocs = [];
+    memoryMovimientos = [];
+  }
+
   return { limpiados: true };
 }
