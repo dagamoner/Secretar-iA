@@ -12,6 +12,7 @@ interface ShortcutHandlers {
   onToggleHelp?: () => void;
   onToggleDashboard?: () => void;
   onToggleViewMode?: () => void;
+  onCommandPalette?: () => void;
 }
 
 export function useKeyboardShortcuts({
@@ -24,6 +25,7 @@ export function useKeyboardShortcuts({
   onToggleHelp,
   onToggleDashboard,
   onToggleViewMode,
+  onCommandPalette,
 }: ShortcutHandlers) {
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -39,18 +41,24 @@ export function useKeyboardShortcuts({
         return;
       }
 
-      // If user is actively typing in an input, don't trigger single-letter shortcuts
-      if (isInput) {
-        // Except Ctrl+K
-        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
-          e.preventDefault();
+      // Shortcut: Command Palette (Ctrl+K or Cmd+K)
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        if (onCommandPalette) {
+          onCommandPalette();
+        } else {
           onFocusSearch?.();
         }
         return;
       }
 
-      // Shortcut: Focus Search (/ or Ctrl+K)
-      if (e.key === "/" || ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k")) {
+      // If user is actively typing in an input, don't trigger single-letter shortcuts
+      if (isInput) {
+        return;
+      }
+
+      // Shortcut: Focus Search (/)
+      if (e.key === "/") {
         e.preventDefault();
         onFocusSearch?.();
         return;

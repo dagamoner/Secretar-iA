@@ -26,6 +26,7 @@ import {
   FileCheck,
   Send,
   Sparkles,
+  Printer,
 } from "lucide-react";
 import { cn, normalizeSearchText } from "@/lib/utils";
 
@@ -35,6 +36,7 @@ interface KanbanBoardProps {
   onSelectDoc: (doc: Documento) => void;
   selectedDocId: number | null;
   onArchivarDoc?: (doc: Documento) => void;
+  onOpenReceiptModal?: (doc: Documento) => void;
 }
 
 interface KanbanColumnDef {
@@ -137,6 +139,7 @@ export function KanbanBoard({
   onSelectDoc,
   selectedDocId,
   onArchivarDoc,
+  onOpenReceiptModal,
 }: KanbanBoardProps) {
   const [copiedId, setCopiedId] = useState<number | null>(null);
   const [columnLimits, setColumnLimits] = useState<Record<string, number>>({});
@@ -734,6 +737,20 @@ export function KanbanBoard({
                           </span>
 
                           <div className="flex items-center space-x-1.5">
+                            {onOpenReceiptModal && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onOpenReceiptModal(doc);
+                                }}
+                                className="inline-flex items-center rounded-md border border-slate-200 bg-white p-1 text-slate-500 hover:text-blue-600 hover:border-blue-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:text-blue-400 transition shadow-2xs"
+                                title="Imprimir Volante Oficial de Remito con QR"
+                              >
+                                <Printer className="h-3 w-3" />
+                              </button>
+                            )}
+
                             {hasSalida ? (
                               doc.estado_actual === "ARCHIVO" ? (
                                 <span className="inline-flex items-center space-x-1 rounded bg-slate-100 border border-slate-200 px-2 py-0.5 text-[10px] font-semibold text-slate-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400">

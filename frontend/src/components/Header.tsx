@@ -15,6 +15,9 @@ import {
   Shield,
   CheckCircle2,
   BarChart3,
+  Sun,
+  Moon,
+  Search,
 } from "lucide-react";
 import { getExcelExportUrl } from "@/lib/api";
 
@@ -33,6 +36,9 @@ interface HeaderProps {
   onOpenChangePassword: () => void;
   onExportExcel?: () => void;
   onOpenDashboard?: () => void;
+  isDarkMode?: boolean;
+  onToggleTheme?: () => void;
+  onOpenCommandPalette?: () => void;
 }
 
 export function Header({
@@ -50,6 +56,9 @@ export function Header({
   onOpenChangePassword,
   onExportExcel,
   onOpenDashboard,
+  isDarkMode = false,
+  onToggleTheme,
+  onOpenCommandPalette,
 }: HeaderProps) {
   const exportUrl = getExcelExportUrl(currentAreaId);
   const [isExporting, setIsExporting] = useState(false);
@@ -209,6 +218,36 @@ export function Header({
           >
             <Shield className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
             <span className="hidden md:inline">Configuración & ETL</span>
+          </button>
+        )}
+
+        {/* Command Palette Trigger */}
+        {onOpenCommandPalette && (
+          <button
+            onClick={onOpenCommandPalette}
+            className="hidden sm:inline-flex items-center space-x-1.5 rounded-lg border border-slate-200/90 bg-slate-50/80 px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition dark:border-slate-800 dark:bg-slate-800/80 dark:text-slate-300 dark:hover:bg-slate-700 shadow-2xs cursor-pointer"
+            title="Buscar trámites o ejecutar acciones rápidas (Ctrl+K)"
+          >
+            <Search className="h-3.5 w-3.5 text-slate-400" />
+            <span className="text-[11px] font-medium hidden md:inline">Comandos</span>
+            <kbd className="rounded border border-slate-300 bg-white px-1 py-0.2 text-[9px] font-mono text-slate-500 shadow-2xs dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400 font-bold">
+              ⌘K
+            </kbd>
+          </button>
+        )}
+
+        {/* Dark Mode Theme Toggle */}
+        {onToggleTheme && (
+          <button
+            onClick={onToggleTheme}
+            className="rounded-lg border border-slate-200 p-1.5 text-slate-500 hover:bg-slate-100 dark:border-slate-800 dark:text-slate-400 dark:hover:bg-slate-800 transition cursor-pointer"
+            title={isDarkMode ? "Cambiar a modo claro (Luz)" : "Cambiar a modo oscuro (Noche)"}
+          >
+            {isDarkMode ? (
+              <Sun className="h-4 w-4 text-amber-400" />
+            ) : (
+              <Moon className="h-4 w-4 text-slate-600 dark:text-slate-400" />
+            )}
           </button>
         )}
 

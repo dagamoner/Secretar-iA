@@ -24,6 +24,9 @@ import { AdminModal } from "@/components/AdminModal";
 import { LoginScreen } from "@/components/LoginScreen";
 import { ChangePasswordModal } from "@/components/ChangePasswordModal";
 import { MovementDashboardModal } from "@/components/MovementDashboardModal";
+import { PassReceiptModal } from "@/components/PassReceiptModal";
+import { DocumentInspectorPanel } from "@/components/DocumentInspectorPanel";
+import { CommandPaletteModal } from "@/components/CommandPaletteModal";
 import { normalizeSearchText } from "@/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
 import * as XLSX from "xlsx";
@@ -47,6 +50,13 @@ export default function HomePage() {
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [isDashboardOpen, setIsDashboardOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"tabla" | "kanban">("tabla");
+
+  // Executive Split-View, Printable Receipt & Command Palette State
+  const [isInspectorOpen, setIsInspectorOpen] = useState(false);
+  const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
+  const [receiptDoc, setReceiptDoc] = useState<Documento | null>(null);
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(false);
 
   // Keyboard navigation & search trigger state
   const [selectedIndex, setSelectedIndex] = useState<number>(0);
@@ -102,8 +112,38 @@ export default function HomePage() {
         }
       }
       setIsAuthLoaded(true);
+
+      // Restore Theme Preference
+      const savedTheme = localStorage.getItem("secretaria_theme");
+      const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      const activeDark = savedTheme === "dark" || (!savedTheme && prefersDark);
+      setIsDarkMode(activeDark);
+      if (activeDark) {
+        document.documentElement.classList.add("dark");
+      } else {
+        document.documentElement.classList.remove("dark");
+      }
     }
   }, []);
+
+  const handleToggleTheme = () => {
+    setIsDarkMode((prev) => {
+      const next = !prev;
+      if (next) {
+        document.documentElement.classList.add("dark");
+        localStorage.setItem("secretaria_theme", "dark");
+      } else {
+        document.documentElement.classList.remove("dark");
+        localStorage.setItem("secretaria_theme", "light");
+      }
+      return next;
+    });
+  };
+
+  const handleOpenReceipt = (doc: Documento) => {
+    setReceiptDoc(doc);
+    setIsReceiptModalOpen(true);
+  };
 
   // Update current user info if refreshed in usuarios list
   React.useEffect(() => {
@@ -300,11 +340,15 @@ export default function HomePage() {
         setSelectedIndex((prev) => Math.max(prev - 1, 0));
       }
     },
+    onCommandPalette: () => setIsCommandPaletteOpen(true),
     onEscape: () => {
       setIsDrawerOpen(false);
       setIsNewDocOpen(false);
       setIsHelpOpen(false);
       setIsDashboardOpen(false);
+      setIsInspectorOpen(false);
+      setIsCommandPaletteOpen(false);
+      setIsReceiptModalOpen(false);
     },
     onToggleHelp: () => setIsHelpOpen((prev) => !prev),
     onToggleDashboard: () => setIsDashboardOpen((prev) => !prev),
@@ -475,6 +519,9 @@ export default function HomePage() {
         onOpenChangePassword={() => setIsChangePasswordOpen(true)}
         onExportExcel={handleExportExcel}
         onOpenDashboard={() => setIsDashboardOpen(true)}
+        isDarkMode={isDarkMode}
+        onToggleTheme={handleToggleTheme}
+        onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
       />
 
       {/* Instant Filter Bar */}
@@ -492,42 +539,62 @@ export default function HomePage() {
         onViewModeChange={setViewMode}
       />
 
-      {/* Dense High-Speed Document Grid or Kanban Board */}
-      <main className="flex flex-1 overflow-hidden">
-        {isLoadingDocs && todosLosDocumentos.length === 0 ? (
-          <div className="flex flex-1 items-center justify-center text-xs text-slate-400">
-            Cargando trazabilidad documental del área...
-          </div>
-        ) : viewMode === "kanban" ? (
-          <KanbanBoard
-            documentos={documentos}
-            selectedDocId={selectedDoc?.id || null}
-            onSelectDoc={(doc) => {
-              setSelectedDoc(doc);
-            }}
+      {/* Dense High-Speed Document Grid or Kanban Board with Split View Inspector */}
+      <main className="flex flex-1 overflow-hidden relative">
+        <div className="flex flex-1 flex-col overflow-hidden min-w-0">
+          {isLoadingDocs && todosLosDocumentos.length === 0 ? (
+            <div className="flex flex-1 items-center justify-center text-xs text-slate-400">
+              Cargando trazabilidad documental del área...
+            </div>
+          ) : viewMode === "kanban" ? (
+            <KanbanBoard
+              documentos={documentos}
+              selectedDocId={selectedDoc?.id || null}
+              onSelectDoc={(doc) => {
+                setSelectedDoc(doc);
+                setIsInspectorOpen(true);
+              }}
+              onOpenMovementDrawer={(doc) => {
+                setSelectedDoc(doc);
+                setIsDrawerOpen(true);
+              }}
+              onArchivarDoc={handleArchivarDoc}
+              onOpenReceiptModal={handleOpenReceipt}
+            />
+          ) : (
+            <DenseDocumentTable
+              data={documentos}
+              selectedDocId={selectedDoc?.id || null}
+              selectedIndex={selectedIndex}
+              onSelectDoc={(doc) => {
+                setSelectedDoc(doc);
+                setIsInspectorOpen(true);
+                const idx = documentos.findIndex((d) => d.id === doc.id);
+                if (idx !== -1) setSelectedIndex(idx);
+              }}
+              onOpenMovementDrawer={(doc) => {
+                setSelectedDoc(doc);
+                setIsDrawerOpen(true);
+              }}
+              onArchivarDoc={handleArchivarDoc}
+              onOpenReceiptModal={handleOpenReceipt}
+              highlightedDocIds={highlightedDocIds}
+              activeEditors={activeEditors}
+            />
+          )}
+        </div>
+
+        {/* Collapsible Split-View Inspector Panel */}
+        {isInspectorOpen && selectedDoc && (
+          <DocumentInspectorPanel
+            documento={selectedDoc}
+            onClose={() => setIsInspectorOpen(false)}
             onOpenMovementDrawer={(doc) => {
               setSelectedDoc(doc);
               setIsDrawerOpen(true);
             }}
+            onOpenReceiptModal={handleOpenReceipt}
             onArchivarDoc={handleArchivarDoc}
-          />
-        ) : (
-          <DenseDocumentTable
-            data={documentos}
-            selectedDocId={selectedDoc?.id || null}
-            selectedIndex={selectedIndex}
-            onSelectDoc={(doc) => {
-              setSelectedDoc(doc);
-              const idx = documentos.findIndex((d) => d.id === doc.id);
-              if (idx !== -1) setSelectedIndex(idx);
-            }}
-            onOpenMovementDrawer={(doc) => {
-              setSelectedDoc(doc);
-              setIsDrawerOpen(true);
-            }}
-            onArchivarDoc={handleArchivarDoc}
-            highlightedDocIds={highlightedDocIds}
-            activeEditors={activeEditors}
           />
         )}
       </main>
@@ -603,6 +670,41 @@ export default function HomePage() {
           }}
         />
       )}
+
+      {/* Official Printable Receipt & Dispatch Slip Modal */}
+      <PassReceiptModal
+        isOpen={isReceiptModalOpen}
+        onClose={() => setIsReceiptModalOpen(false)}
+        documento={receiptDoc || selectedDoc}
+        areaNombre={areas.find((a) => a.id === currentAreaId)?.nombre}
+        usuarioEmisor={currentUser?.nombre_completo}
+      />
+
+      {/* Universal Spotlight Command Palette Modal (Ctrl+K / Cmd+K) */}
+      <CommandPaletteModal
+        isOpen={isCommandPaletteOpen}
+        onClose={() => setIsCommandPaletteOpen(false)}
+        documentos={todosLosDocumentos}
+        onSelectDoc={(doc) => {
+          setSelectedDoc(doc);
+          setIsInspectorOpen(true);
+          const idx = documentos.findIndex((d) => d.id === doc.id);
+          if (idx !== -1) setSelectedIndex(idx);
+        }}
+        onOpenNewDoc={() => setIsNewDocOpen(true)}
+        onOpenDashboard={() => setIsDashboardOpen(true)}
+        onExportExcel={handleExportExcel}
+        onSetViewMode={setViewMode}
+        onFilterPreset={(field, val) => {
+          setFilters((prev) => ({
+            ...prev,
+            [field]: val,
+          }));
+        }}
+        onToggleTheme={handleToggleTheme}
+        isDarkMode={isDarkMode}
+        onOpenHelp={() => setIsHelpOpen(true)}
+      />
     </div>
   );
 }

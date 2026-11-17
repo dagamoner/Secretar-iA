@@ -12,15 +12,16 @@ export function KeyboardShortcutsHelp({ isOpen, onClose }: KeyboardShortcutsHelp
   if (!isOpen) return null;
 
   const shortcuts = [
+    { key: "Ctrl + K", desc: "Paleta de comandos y búsqueda global" },
     { key: "/", desc: "Enfocar barra de búsqueda instantánea" },
-    { key: "Ctrl + K", desc: "Búsqueda rápida universal" },
+    { key: "Espacio", desc: "Abrir / Cerrar ficha ejecutiva lateral del trámite" },
     { key: "N", desc: "Abrir modal de nuevo trámite / caratulación" },
     { key: "D", desc: "Abrir Dashboard interactivo de movimientos y flujo documental" },
     { key: "V", desc: "Alternar modo de vista (Tabla Grilla / Tablero Kanban)" },
     { key: "P ó Enter", desc: "Abrir drawer de nuevo pase para el trámite seleccionado" },
     { key: "↓ / J", desc: "Navegar hacia la siguiente fila en la grilla" },
     { key: "↑ / K", desc: "Navegar hacia la fila anterior en la grilla" },
-    { key: "Esc", desc: "Cerrar modal, drawer o cancelar selección" },
+    { key: "Esc", desc: "Cerrar modal, panel o cancelar selección" },
     { key: "?", desc: "Mostrar este panel de atajos de teclado" },
   ];
 

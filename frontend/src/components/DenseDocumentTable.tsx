@@ -28,6 +28,7 @@ import {
   FileText,
   AlertTriangle,
   Archive,
+  Printer,
 } from "lucide-react";
 
 interface DenseDocumentTableProps {
@@ -36,6 +37,7 @@ interface DenseDocumentTableProps {
   onSelectDoc: (doc: Documento) => void;
   onOpenMovementDrawer: (doc: Documento) => void;
   onArchivarDoc?: (doc: Documento) => void;
+  onOpenReceiptModal?: (doc: Documento) => void;
   highlightedDocIds: Set<number>;
   activeEditors: Record<number, string>;
   selectedIndex: number;
@@ -47,6 +49,7 @@ export function DenseDocumentTable({
   onSelectDoc,
   onOpenMovementDrawer,
   onArchivarDoc,
+  onOpenReceiptModal,
   highlightedDocIds,
   activeEditors,
   selectedIndex,
@@ -366,39 +369,70 @@ export function DenseDocumentTable({
             }
 
             return (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onArchivarDoc?.(doc);
-                }}
-                className="inline-flex items-center space-x-1 rounded-md border border-slate-300 bg-white px-2 py-1 text-[11px] font-bold text-slate-700 shadow-2xs hover:bg-slate-800 hover:text-white hover:border-slate-800 transition active:scale-95 dark:border-slate-700 dark:bg-slate-850 dark:text-slate-200 dark:hover:bg-slate-700"
-                title={`El documento ya egresó hacia ${doc.destino_actual || "su ámbito"}. Pasar a Archivo definitivo.`}
-              >
-                <Archive className="h-3 w-3 text-slate-500" />
-                <span>Archivar</span>
-              </button>
+              <div className="flex items-center space-x-1.5 justify-end">
+                {onOpenReceiptModal && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onOpenReceiptModal(doc);
+                    }}
+                    className="inline-flex items-center rounded-md border border-slate-200 bg-white p-1 text-slate-500 hover:text-slate-900 hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400 dark:hover:text-white transition shadow-2xs"
+                    title="Imprimir Volante Oficial de Remito con QR"
+                  >
+                    <Printer className="h-3 w-3" />
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onArchivarDoc?.(doc);
+                  }}
+                  className="inline-flex items-center space-x-1 rounded-md border border-slate-300 bg-white px-2 py-1 text-[11px] font-bold text-slate-700 shadow-2xs hover:bg-slate-800 hover:text-white hover:border-slate-800 transition active:scale-95 dark:border-slate-700 dark:bg-slate-850 dark:text-slate-200 dark:hover:bg-slate-700"
+                  title={`El documento ya egresó hacia ${doc.destino_actual || "su ámbito"}. Pasar a Archivo definitivo.`}
+                >
+                  <Archive className="h-3 w-3 text-slate-500" />
+                  <span>Archivar</span>
+                </button>
+              </div>
             );
           }
 
           // Document is physically in the office, allow Pase
           return (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onOpenMovementDrawer(doc);
-              }}
-              className="inline-flex items-center space-x-1 rounded-md border border-blue-200 bg-blue-50 px-2 py-1 text-[11px] font-bold text-blue-700 shadow-2xs hover:bg-blue-600 hover:text-white hover:border-blue-600 transition active:scale-95 dark:border-blue-900/60 dark:bg-blue-950/40 dark:text-blue-300 dark:hover:bg-blue-600 dark:hover:text-white"
-              title="Registrar nuevo pase (P)"
-            >
-              <span>Pase</span>
-              <ArrowRight className="h-3 w-3" />
-            </button>
+            <div className="flex items-center space-x-1.5 justify-end">
+              {onOpenReceiptModal && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onOpenReceiptModal(doc);
+                  }}
+                  className="inline-flex items-center rounded-md border border-slate-200 bg-white p-1 text-slate-500 hover:text-blue-600 hover:border-blue-300 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400 dark:hover:text-blue-400 transition shadow-2xs"
+                  title="Imprimir Volante Oficial de Remito con QR"
+                >
+                  <Printer className="h-3 w-3" />
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onOpenMovementDrawer(doc);
+                }}
+                className="inline-flex items-center space-x-1 rounded-md border border-blue-200 bg-blue-50 px-2 py-1 text-[11px] font-bold text-blue-700 shadow-2xs hover:bg-blue-600 hover:text-white hover:border-blue-600 transition active:scale-95 dark:border-blue-900/60 dark:bg-blue-950/40 dark:text-blue-300 dark:hover:bg-blue-600 dark:hover:text-white"
+                title="Registrar nuevo pase (P)"
+              >
+                <span>Pase</span>
+                <ArrowRight className="h-3 w-3" />
+              </button>
+            </div>
           );
         },
       },
     ],
-    [highlightedDocIds, activeEditors, onOpenMovementDrawer, onArchivarDoc, copiedId]
+    [highlightedDocIds, activeEditors, onOpenMovementDrawer, onArchivarDoc, onOpenReceiptModal, copiedId]
   );
 
   const table = useReactTable({
