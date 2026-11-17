@@ -27,6 +27,7 @@ import { MovementDashboardModal } from "@/components/MovementDashboardModal";
 import { PassReceiptModal } from "@/components/PassReceiptModal";
 import { DocumentInspectorPanel } from "@/components/DocumentInspectorPanel";
 import { CommandPaletteModal } from "@/components/CommandPaletteModal";
+import { TableSkeletonLoader } from "@/components/TableSkeletonLoader";
 import { normalizeSearchText } from "@/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
 import * as XLSX from "xlsx";
@@ -543,9 +544,7 @@ export default function HomePage() {
       <main className="flex flex-1 overflow-hidden relative">
         <div className="flex flex-1 flex-col overflow-hidden min-w-0">
           {isLoadingDocs && todosLosDocumentos.length === 0 ? (
-            <div className="flex flex-1 items-center justify-center text-xs text-slate-400">
-              Cargando trazabilidad documental del área...
-            </div>
+            <TableSkeletonLoader rows={12} />
           ) : viewMode === "kanban" ? (
             <KanbanBoard
               documentos={documentos}
