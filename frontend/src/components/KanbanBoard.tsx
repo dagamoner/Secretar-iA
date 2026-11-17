@@ -778,7 +778,7 @@ export function KanbanBoard({
                                   e.stopPropagation();
                                   onOpenMovementDrawer(doc);
                                 }}
-                                className="inline-flex items-center space-x-1 rounded-md border border-blue-300 bg-blue-600 px-3 py-1 text-[11px] font-bold text-white hover:bg-blue-700 hover:border-blue-700 transition active:scale-95 shadow-xs"
+                                className="inline-flex items-center space-x-1 rounded-md border border-[#000f9f] bg-[#000f9f] px-3 py-1 text-[11px] font-bold text-white hover:bg-[#000966] hover:border-[#000966] transition active:scale-95 shadow-xs cursor-pointer dark:bg-[#3cb4e5] dark:border-[#3cb4e5] dark:text-slate-950 dark:hover:bg-[#32a2cf]"
                                 title="Registrar nuevo pase de área o funcionario (trámite en oficina)"
                               >
                                 <span>Pase</span>

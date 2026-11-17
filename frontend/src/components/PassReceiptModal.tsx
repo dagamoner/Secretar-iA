@@ -76,16 +76,16 @@ export function PassReceiptModal({
       <div className="relative w-full max-w-2xl rounded-2xl bg-white shadow-2xl dark:bg-slate-900 dark:border dark:border-slate-800 print:shadow-none print:border-none print:max-w-none print:w-full">
         {/* Screen Header (Hidden on print) */}
         <div className="flex items-center justify-between border-b border-slate-200 px-5 py-3.5 dark:border-slate-800 print:hidden">
-          <div className="flex items-center space-x-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 text-white shadow-xs">
+          <div className="flex items-center space-x-2.5">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#000f9f] text-white shadow-xs">
               <Printer className="h-4 w-4" />
             </div>
             <div>
-              <h2 className="text-sm font-black text-slate-900 dark:text-white">
+              <h2 className="text-sm font-black text-slate-900 dark:text-white font-rem">
                 Volante Oficial de Remito y Pase
               </h2>
               <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                Vista previa con membrete ministerial y código QR para despacho físico
+                Membrete reglamentario del Gobierno de Mendoza con código QR institucional
               </p>
             </div>
           </div>
@@ -94,7 +94,7 @@ export function PassReceiptModal({
             <button
               onClick={handlePrint}
               type="button"
-              className="inline-flex items-center space-x-1.5 rounded-lg bg-blue-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-blue-700 transition active:scale-95"
+              className="inline-flex items-center space-x-1.5 rounded-lg bg-[#000f9f] px-3.5 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-[#000966] transition active:scale-95 cursor-pointer dark:bg-[#3cb4e5] dark:text-slate-950 dark:hover:bg-[#32a2cf]"
             >
               <Printer className="h-3.5 w-3.5" />
               <span>Imprimir Remito</span>
@@ -112,31 +112,34 @@ export function PassReceiptModal({
         {/* Printable Receipt Body */}
         <div id="printable-receipt" className="p-6 text-slate-900 print:p-6 print:text-black">
           {/* Institutional Header */}
-          <div className="border-b-2 border-slate-900 pb-3 mb-4">
+          <div className="border-b-2 border-[#000f9f] pb-3 mb-4">
             <div className="flex items-start justify-between">
-              <div>
-                <div className="flex items-center space-x-1.5 mb-1">
-                  <span className="font-serif font-black tracking-widest text-xs uppercase text-slate-900">
-                    GOBIERNO DE MENDOZA
-                  </span>
-                  <span className="text-[10px] text-slate-400">|</span>
-                  <span className="text-[10px] font-bold text-slate-600 uppercase">
-                    MGIyDT
-                  </span>
+              <div className="flex items-center space-x-3.5">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/logo-mendoza-horizontal.svg"
+                  alt="Gobierno de Mendoza"
+                  className="h-11 w-auto"
+                />
+                <div className="h-10 w-px bg-slate-300" />
+                <div>
+                  <h1 className="text-sm font-black tracking-tight text-[#000f9f] font-rem leading-tight">
+                    SECRETARÍA PRIVADA
+                  </h1>
+                  <p className="text-[11px] font-bold text-slate-800">
+                    Ministerio de Gobierno, Infraestructura y Desarrollo Territorial
+                  </p>
+                  <p className="text-[10px] text-slate-500 font-medium">
+                    Mesa de Entradas y Trazabilidad Documental (SPMG)
+                  </p>
                 </div>
-                <h1 className="text-base font-black tracking-tight text-slate-900 leading-tight">
-                  SECRETARÍA PRIVADA
-                </h1>
-                <p className="text-[11px] font-semibold text-slate-600">
-                  Ministerio de Gobierno, Infraestructura y Desarrollo Territorial
-                </p>
               </div>
 
               <div className="text-right">
-                <span className="inline-block rounded border border-slate-900 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider">
-                  REMITO DE TRASLADO
+                <span className="inline-block rounded border-2 border-[#000f9f] bg-[#000f9f]/5 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-[#000f9f]">
+                  VOLANTE OFICIAL DE REMITO
                 </span>
-                <p className="text-[11px] font-mono text-slate-600 mt-1">
+                <p className="text-[11px] font-mono text-slate-600 mt-1.5">
                   Fecha: <strong className="text-slate-900">{fechaEmision}</strong> - {horaEmision} hs
                 </p>
               </div>

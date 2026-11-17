@@ -80,28 +80,43 @@ export function Header({
     <header className="sticky top-0 z-30 flex h-14 w-full items-center justify-between border-b border-slate-200/90 bg-white/95 px-4 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/95 shadow-2xs">
       {/* Brand & Government Area Info */}
       <div className="flex items-center space-x-3.5">
-        <div className="flex items-center space-x-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 text-white font-black text-sm shadow-sm shadow-blue-500/30">
-            S
+        <div className="flex items-center space-x-3">
+          {/* Official Gobierno de Mendoza Logo */}
+          <div className="flex items-center shrink-0">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/logo-mendoza-horizontal.svg"
+              alt="Gobierno de Mendoza"
+              className="h-8 w-auto dark:hidden"
+            />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/logo-mendoza-horizontal-white.svg"
+              alt="Gobierno de Mendoza"
+              className="h-8 w-auto hidden dark:block"
+            />
           </div>
+
+          <div className="h-6 w-px bg-slate-200 dark:bg-slate-700 hidden sm:block" />
+
           <div>
             <div className="flex items-center space-x-1.5">
-              <h1 className="text-sm font-black leading-none tracking-tight text-slate-900 dark:text-white flex items-center">
-                Secretar<span className="text-blue-600 dark:text-blue-400">·iA</span>
+              <h1 className="text-sm font-black leading-none tracking-tight text-slate-900 dark:text-white flex items-center font-rem">
+                Secretar<span className="text-[#000f9f] dark:text-[#3cb4e5]">·iA</span>
               </h1>
-              <span className="rounded bg-blue-50 border border-blue-200/80 px-1.5 py-0.2 text-[9px] font-black uppercase text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800">
+              <span className="rounded bg-[#000f9f]/10 border border-[#000f9f]/20 px-1.5 py-0.2 text-[9px] font-black uppercase text-[#000f9f] dark:bg-[#3cb4e5]/20 dark:text-[#3cb4e5] dark:border-[#3cb4e5]/30">
                 SPMG
               </span>
             </div>
-            <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
-              Secretaría Privada · Gobierno de Mendoza
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium truncate max-w-[240px] sm:max-w-none">
+              Secretaría Privada · Min. de Gobierno, Infraestructura y Desarrollo Territorial
             </p>
           </div>
         </div>
 
         {/* Tenant Area Switcher */}
-        <div className="hidden sm:flex items-center space-x-1.5 rounded-lg border border-slate-200/90 bg-slate-50 px-2.5 py-1 text-xs dark:border-slate-800 dark:bg-slate-800/80">
-          <Layers className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+        <div className="hidden lg:flex items-center space-x-1.5 rounded-lg border border-slate-200/90 bg-slate-50 px-2.5 py-1 text-xs dark:border-slate-800 dark:bg-slate-800/80">
+          <Layers className="h-3.5 w-3.5 text-[#000f9f] dark:text-[#3cb4e5]" />
           <span className="font-semibold text-slate-500 dark:text-slate-400">Mesa:</span>
           <select
             value={currentAreaId}
@@ -263,11 +278,11 @@ export function Header({
         {/* New Document Button */}
         <button
           onClick={onOpenNewDoc}
-          className="inline-flex items-center space-x-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-blue-500 transition active:scale-95"
+          className="inline-flex items-center space-x-1.5 rounded-lg bg-[#000f9f] px-3.5 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-[#000966] transition active:scale-95 cursor-pointer dark:bg-[#3cb4e5] dark:text-slate-950 dark:hover:bg-[#32a2cf]"
         >
           <Plus className="h-4 w-4" />
           <span>Nuevo Trámite</span>
-          <kbd className="ml-1 rounded bg-blue-700 px-1 py-0.2 text-[10px] font-mono opacity-80 hidden sm:inline">
+          <kbd className="ml-1 rounded bg-black/20 px-1 py-0.2 text-[10px] font-mono opacity-80 hidden sm:inline">
             N
           </kbd>
         </button>

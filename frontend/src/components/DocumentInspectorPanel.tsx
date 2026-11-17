@@ -73,9 +73,20 @@ export function DocumentInspectorPanel({
       {/* Panel Top Navigation */}
       <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40">
         <div className="flex items-center space-x-2">
-          <span className="flex h-2 w-2 rounded-full bg-blue-600 animate-pulse" />
-          <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-            Ficha Ejecutiva
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/escudo-mendoza.svg"
+            alt="Gobierno de Mendoza"
+            className="h-5 w-auto dark:hidden"
+          />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/escudo-mendoza-white.svg"
+            alt="Gobierno de Mendoza"
+            className="h-5 w-auto hidden dark:block"
+          />
+          <span className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider font-rem">
+            Ficha Ejecutiva SPMG
           </span>
         </div>
 
@@ -83,8 +94,8 @@ export function DocumentInspectorPanel({
           <button
             type="button"
             onClick={() => onOpenReceiptModal(documento)}
-            title="Imprimir volante oficial de remito / pase"
-            className="rounded-lg p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-800 transition"
+            title="Imprimir volante oficial de remito con código QR"
+            className="rounded-lg p-1.5 text-slate-500 hover:text-[#000f9f] hover:bg-blue-50 dark:hover:bg-slate-800 dark:hover:text-[#3cb4e5] transition cursor-pointer"
           >
             <Printer className="h-4 w-4" />
           </button>
@@ -92,7 +103,7 @@ export function DocumentInspectorPanel({
             type="button"
             onClick={onClose}
             title="Cerrar panel de inspección (Esc)"
-            className="rounded-lg p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 dark:hover:text-white transition"
+            className="rounded-lg p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 dark:hover:text-white transition cursor-pointer"
           >
             <X className="h-4 w-4" />
           </button>
@@ -341,7 +352,7 @@ export function DocumentInspectorPanel({
             <button
               type="button"
               onClick={() => onOpenMovementDrawer(documento)}
-              className="flex items-center justify-center space-x-1.5 rounded-xl bg-blue-600 py-2 text-xs font-bold text-white shadow-xs hover:bg-blue-700 active:scale-95 transition"
+              className="flex items-center justify-center space-x-1.5 rounded-xl bg-[#000f9f] py-2 text-xs font-bold text-white shadow-xs hover:bg-[#000966] active:scale-95 transition cursor-pointer dark:bg-[#3cb4e5] dark:text-slate-950 dark:hover:bg-[#32a2cf]"
             >
               <span>Registrar Pase</span>
               <ArrowRight className="h-3.5 w-3.5" />

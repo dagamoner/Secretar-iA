@@ -50,22 +50,38 @@ export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
       <div className="w-full max-w-md overflow-hidden rounded-2xl border border-slate-200/80 bg-white/95 p-8 shadow-2xl backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/90">
         {/* Brand & Header */}
         <div className="text-center">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-600 text-white shadow-lg shadow-blue-500/30">
-            <ShieldCheck className="h-8 w-8" />
+          {/* Official Gobierno de Mendoza Logo */}
+          <div className="mx-auto flex items-center justify-center mb-3">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/logo-mendoza-vertical.svg"
+              alt="Gobierno de Mendoza"
+              className="h-20 w-auto dark:hidden"
+            />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/logo-mendoza-vertical-white.svg"
+              alt="Gobierno de Mendoza"
+              className="h-20 w-auto hidden dark:block"
+            />
           </div>
-          <h1 className="mt-4 text-xl font-black tracking-tight text-slate-900 dark:text-white">
-            Secretar<span className="text-blue-600 dark:text-blue-400">·iA</span>
+
+          <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white font-rem">
+            Secretar<span className="text-[#000f9f] dark:text-[#3cb4e5]">·iA</span>
           </h1>
-          <p className="mt-1 text-xs font-bold text-slate-600 dark:text-slate-300">
-            Secretaría Privada — Ministerio de Gobierno
+          <p className="mt-1 text-xs font-bold text-slate-700 dark:text-slate-300">
+            Secretaría Privada — Min. de Gobierno, Infraestructura y Desarrollo Territorial
           </p>
-          <p className="mt-0.5 text-[11px] text-slate-400">
-            Sistema de Trazabilidad Documental y Despacho
-          </p>
+          <div className="mt-1.5 flex items-center justify-center space-x-1.5">
+            <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#000f9f] dark:bg-[#3cb4e5]" />
+            <p className="text-[11px] font-semibold text-[#000f9f] dark:text-[#3cb4e5]">
+              Sistema de Trazabilidad Documental y Despacho Ministerial
+            </p>
+          </div>
         </div>
 
         {/* Quick User Chips */}
-        <div className="mt-6 rounded-xl border border-blue-100 bg-blue-50/50 p-3 text-center dark:border-blue-950 dark:bg-blue-950/30">
+        <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50/70 p-3 text-center dark:border-slate-800 dark:bg-slate-800/40">
           <span className="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-2">
             Acceso Rápido al Sistema:
           </span>
@@ -75,7 +91,7 @@ export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
               onClick={() => setPredefinedUser("vaninapardo")}
               className={`rounded-lg px-3 py-1.5 text-xs font-bold transition shadow-xs ${
                 username === "vaninapardo"
-                  ? "bg-blue-600 text-white"
+                  ? "bg-[#000f9f] text-white dark:bg-[#3cb4e5] dark:text-slate-950"
                   : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-100 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700"
               }`}
             >
@@ -160,7 +176,7 @@ export function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
           <button
             type="submit"
             disabled={isLoading}
-            className="mt-2 flex w-full items-center justify-center space-x-2 rounded-lg bg-blue-600 py-2.5 font-bold text-white shadow-md shadow-blue-500/20 hover:bg-blue-500 active:scale-95 disabled:opacity-50 transition"
+            className="mt-2 flex w-full items-center justify-center space-x-2 rounded-lg bg-[#000f9f] py-2.5 font-bold text-white shadow-md shadow-[#000f9f]/20 hover:bg-[#000966] active:scale-95 disabled:opacity-50 transition cursor-pointer dark:bg-[#3cb4e5] dark:text-slate-950 dark:hover:bg-[#32a2cf]"
           >
             <span>{isLoading ? "Validando credenciales..." : "Ingresar al Sistema"}</span>
             <ArrowRight className="h-4 w-4" />

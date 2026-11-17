@@ -256,6 +256,18 @@ export function CommandPaletteModal({
       <div className="w-full max-w-2xl rounded-2xl bg-white shadow-2xl dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 overflow-hidden animate-in zoom-in-95 duration-150">
         {/* Search Input Bar */}
         <div className="relative flex items-center border-b border-slate-200 px-4 py-3 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-850/50">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/escudo-mendoza.svg"
+            alt="Gobierno de Mendoza"
+            className="h-5 w-auto mr-2.5 dark:hidden"
+          />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/escudo-mendoza-white.svg"
+            alt="Gobierno de Mendoza"
+            className="h-5 w-auto mr-2.5 hidden dark:block"
+          />
           <Search className="h-4 w-4 text-slate-400 shrink-0" />
           <input
             ref={inputRef}
@@ -266,7 +278,7 @@ export function CommandPaletteModal({
               setSelectedIndex(0);
             }}
             placeholder="Escribe una acción, expediente, carátula o funcionario... (Esc para salir)"
-            className="ml-3 flex-1 bg-transparent text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none dark:text-white font-medium"
+            className="ml-3 flex-1 bg-transparent text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none dark:text-white font-medium font-rem"
           />
           <kbd className="rounded border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-mono font-bold text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">
             ESC
@@ -298,21 +310,21 @@ export function CommandPaletteModal({
                         onMouseEnter={() => setSelectedIndex(idx)}
                         className={`flex items-center justify-between rounded-xl px-3 py-2 cursor-pointer transition ${
                           isSelected
-                            ? "bg-blue-600 text-white shadow-xs"
+                            ? "bg-[#000f9f] text-white shadow-xs dark:bg-[#3cb4e5] dark:text-slate-950"
                             : "hover:bg-slate-100 text-slate-800 dark:text-slate-200 dark:hover:bg-slate-800/80"
                         }`}
                       >
                         <div className="flex items-center space-x-3 truncate">
                           <Icon
                             className={`h-4 w-4 shrink-0 ${
-                              isSelected ? "text-white" : "text-slate-500 dark:text-slate-400"
+                              isSelected ? "text-white dark:text-slate-950" : "text-slate-500 dark:text-slate-400"
                             }`}
                           />
                           <div className="truncate">
                             <span className="text-xs font-bold block leading-tight">{item.title}</span>
                             <span
                               className={`text-[10px] truncate block ${
-                                isSelected ? "text-blue-100" : "text-slate-400"
+                                isSelected ? "text-blue-100 dark:text-slate-800" : "text-slate-400"
                               }`}
                             >
                               {item.subtitle}
@@ -324,7 +336,7 @@ export function CommandPaletteModal({
                           <kbd
                             className={`rounded px-1.5 py-0.5 text-[10px] font-mono font-bold ${
                               isSelected
-                                ? "bg-blue-700 text-white"
+                                ? "bg-white/20 text-white dark:bg-black/20 dark:text-slate-950"
                                 : "bg-slate-100 border border-slate-200 text-slate-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400"
                             }`}
                           >
@@ -357,7 +369,7 @@ export function CommandPaletteModal({
                         onMouseEnter={() => setSelectedIndex(globalIdx)}
                         className={`flex items-center justify-between rounded-xl px-3 py-2 cursor-pointer transition ${
                           isSelected
-                            ? "bg-blue-600 text-white shadow-xs"
+                            ? "bg-[#000f9f] text-white shadow-xs dark:bg-[#3cb4e5] dark:text-slate-950"
                             : "hover:bg-slate-100 text-slate-800 dark:text-slate-200 dark:hover:bg-slate-800/80"
                         }`}
                       >

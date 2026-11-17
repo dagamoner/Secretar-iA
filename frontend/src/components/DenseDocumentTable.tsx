@@ -421,7 +421,7 @@ export function DenseDocumentTable({
                   e.stopPropagation();
                   onOpenMovementDrawer(doc);
                 }}
-                className="inline-flex items-center space-x-1 rounded-md border border-blue-200 bg-blue-50 px-2 py-1 text-[11px] font-bold text-blue-700 shadow-2xs hover:bg-blue-600 hover:text-white hover:border-blue-600 transition active:scale-95 dark:border-blue-900/60 dark:bg-blue-950/40 dark:text-blue-300 dark:hover:bg-blue-600 dark:hover:text-white"
+                className="inline-flex items-center space-x-1 rounded-md border border-[#000f9f]/30 bg-[#000f9f]/5 px-2 py-1 text-[11px] font-bold text-[#000f9f] shadow-2xs hover:bg-[#000f9f] hover:text-white hover:border-[#000f9f] transition active:scale-95 dark:border-[#3cb4e5]/40 dark:bg-[#3cb4e5]/10 dark:text-[#3cb4e5] dark:hover:bg-[#3cb4e5] dark:hover:text-slate-950"
                 title="Registrar nuevo pase (P)"
               >
                 <span>Pase</span>
@@ -510,7 +510,7 @@ export function DenseDocumentTable({
                         : "bg-slate-50/40 dark:bg-slate-900/30",
                       "hover:bg-blue-50/60 dark:hover:bg-blue-950/30",
                       isSelected
-                        ? "border-l-blue-600 bg-blue-100/60 dark:bg-blue-900/40 font-medium"
+                        ? "border-l-[#000f9f] bg-blue-100/60 dark:border-l-[#3cb4e5] dark:bg-blue-900/40 font-medium"
                         : "border-l-transparent",
                       isHighlighted &&
                         "bg-blue-200/90 dark:bg-blue-700/60 ring-2 ring-blue-500 animate-pulse"
