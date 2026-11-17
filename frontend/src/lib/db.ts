@@ -12,7 +12,20 @@ export function verifyPassword(password: string, hash?: string): boolean {
   return hashPassword(password) === hash || password === hash;
 }
 
+let isPostgresDisabled = false;
+
+export function disablePostgres(reason?: string) {
+  if (!isPostgresDisabled) {
+    console.warn("Disabling Postgres due to error or quota limits:", reason);
+    isPostgresDisabled = true;
+  }
+}
+
 export function getDbClient() {
+  if (isPostgresDisabled) return null;
+  if (process.env.DISABLE_POSTGRES === "true" || process.env.FORCE_MEMORY_STORE === "true") {
+    return null;
+  }
   const connectionString =
     process.env.POSTGRES_URL ||
     process.env.DATABASE_URL ||
@@ -243,6 +256,7 @@ export async function initializeVercelDb() {
     return { initialized: true, message: "Tablas y datos iniciales listos en Vercel Postgres" };
   } catch (error: any) {
     console.error("Error inicializando Vercel DB:", error);
+    disablePostgres(error?.message);
     return { initialized: false, error: error.message };
   }
 }
@@ -250,7 +264,7 @@ export async function initializeVercelDb() {
 let isDbInitialized = false;
 
 export async function ensureDbInitialized() {
-  if (isDbInitialized) return;
+  if (isDbInitialized || isPostgresDisabled) return;
   const client = getDbClient();
   if (!client) return;
   try {
@@ -292,8 +306,9 @@ export async function ensureDbInitialized() {
     await client`DELETE FROM usuarios WHERE username IN ('marianalopez', 'carlos.admin');`;
 
     isDbInitialized = true;
-  } catch (e) {
-    console.warn("ensureDbInitialized warning:", e);
+  } catch (e: any) {
+    console.warn("ensureDbInitialized warning:", e?.message);
+    disablePostgres(e?.message);
   }
 }
 
@@ -579,113 +594,120 @@ export async function dbCreateDocumento(data: any): Promise<Documento> {
   const now = new Date();
   const hora = now.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
 
-  if (!client) {
-    const newDoc: Documento = {
-      id: memoryDocs.length + 1,
-      area_id: data.area_id,
-      numero_expediente: data.numero_expediente,
-      tipo_documento: data.tipo_documento || "EXPEDIENTE",
-      anio: data.anio || now.getFullYear(),
-      iniciador_caratula: data.iniciador_caratula,
-      extracto: data.extracto,
-      estado_actual: data.estado_actual || "INICIADO",
-      destino_actual: data.destino_actual || "Mesa de Entradas",
-      portador_actual: data.portador_actual || "Mesa de Entradas",
-      foja_actual: data.foja_actual || 1,
-      prioridad: data.prioridad || "NORMAL",
-      fecha_ingreso: now.toISOString(),
-      ultimo_movimiento_at: now.toISOString(),
-      ultimo_movimiento_hora_corta: hora,
-      ultimo_movimiento_formateado: now.toLocaleDateString("es-AR") + " " + hora,
-      creado_por_id: data.creado_por_id,
-      created_at: now.toISOString(),
-      updated_at: now.toISOString(),
-    };
-    memoryDocs.unshift(newDoc);
+  if (client) {
+    try {
+      const ultMov = data.ultimo_movimiento_at ? new Date(data.ultimo_movimiento_at).toISOString() : null;
+      const fIngreso = data.fecha_ingreso ? new Date(data.fecha_ingreso).toISOString() : now.toISOString();
 
-    const initialMov: Movimiento = {
-      id: memoryMovimientos.length + 1,
-      documento_id: newDoc.id,
-      area_id: data.area_id,
-      usuario_nombre: data.creado_por_nombre || "Mesa de Entradas",
-      estado_nuevo: newDoc.estado_actual,
-      destino_nuevo: newDoc.destino_actual,
-      portador_nuevo: newDoc.portador_actual,
-      fojas_agregadas: newDoc.foja_actual,
-      observacion: data.observacion_inicial || "Caratulación e ingreso inicial",
-      fecha_hora: now.toISOString(),
-      hora_corta: hora,
-      fecha_formateada: now.toLocaleDateString("es-AR") + " " + hora,
-    };
-    memoryMovimientos.unshift(initialMov);
-    return newDoc;
+      const res = await client`
+        INSERT INTO documentos (
+          area_id, numero_expediente, tipo_documento, anio, iniciador_caratula, 
+          extracto, estado_actual, destino_actual, portador_actual, foja_actual, 
+          prioridad, creado_por_id, fecha_ingreso, ultimo_movimiento_at
+        ) VALUES (
+          ${data.area_id}, ${data.numero_expediente}, ${data.tipo_documento || 'EXPEDIENTE'}, ${data.anio || now.getFullYear()},
+          ${data.iniciador_caratula}, ${data.extracto || null}, ${data.estado_actual || 'INICIADO'}, ${data.destino_actual || 'Mesa de Entradas'},
+          ${data.portador_actual || 'Mesa de Entradas'}, ${data.foja_actual || 1}, ${data.prioridad || 'NORMAL'}, ${data.creado_por_id || null},
+          ${fIngreso}, ${ultMov}
+        ) RETURNING *;
+      `;
+      const doc = res[0];
+
+      await client`
+        INSERT INTO movimientos (
+          documento_id, area_id, usuario_id, usuario_nombre, estado_nuevo, 
+          destino_nuevo, portador_nuevo, fojas_agregadas, observacion, fecha_hora
+        ) VALUES (
+          ${doc.id}, ${doc.area_id}, ${data.creado_por_id || null}, ${data.creado_por_nombre || 'Mesa de Entradas'},
+          ${doc.estado_actual}, ${doc.destino_actual}, ${doc.portador_actual}, ${doc.foja_actual},
+          ${data.observacion_inicial || 'Caratulación e ingreso inicial'}, ${fIngreso}
+        );
+      `;
+
+      if (ultMov) {
+        await client`
+          INSERT INTO movimientos (
+            documento_id, area_id, usuario_id, usuario_nombre, estado_nuevo, 
+            destino_nuevo, portador_nuevo, fojas_agregadas, observacion, fecha_hora
+          ) VALUES (
+            ${doc.id}, ${doc.area_id}, ${data.creado_por_id || null}, ${data.creado_por_nombre || 'Mesa de Entradas'},
+            ${doc.estado_actual}, ${doc.destino_actual}, ${doc.portador_actual}, ${doc.foja_actual},
+            ${'Salida registrada hacia ' + (doc.destino_actual || 'ámbito correspondiente')}, ${ultMov}
+          );
+        `;
+      }
+
+      const ultMovHora = ultMov ? new Date(ultMov).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" }) : null;
+      const ultMovFormateado = ultMov ? new Date(ultMov).toLocaleDateString("es-AR") + " " + ultMovHora : null;
+
+      const createdDoc: Documento = {
+        id: doc.id,
+        area_id: doc.area_id,
+        numero_expediente: doc.numero_expediente,
+        tipo_documento: doc.tipo_documento,
+        anio: doc.anio,
+        iniciador_caratula: doc.iniciador_caratula,
+        extracto: doc.extracto,
+        estado_actual: doc.estado_actual,
+        destino_actual: doc.destino_actual,
+        portador_actual: doc.portador_actual,
+        foja_actual: doc.foja_actual,
+        prioridad: doc.prioridad,
+        fecha_ingreso: fIngreso,
+        ultimo_movimiento_at: ultMov,
+        ultimo_movimiento_hora_corta: ultMovHora,
+        ultimo_movimiento_formateado: ultMovFormateado,
+        creado_por_id: doc.creado_por_id,
+        created_at: now.toISOString(),
+        updated_at: now.toISOString(),
+      };
+      memoryDocs.unshift(createdDoc);
+      return createdDoc;
+    } catch (err: any) {
+      console.warn("Postgres create documento failed, falling back to memory:", err?.message);
+      disablePostgres(err?.message);
+    }
   }
 
-  const ultMov = data.ultimo_movimiento_at ? new Date(data.ultimo_movimiento_at).toISOString() : null;
-  const fIngreso = data.fecha_ingreso ? new Date(data.fecha_ingreso).toISOString() : now.toISOString();
-
-  const res = await client`
-    INSERT INTO documentos (
-      area_id, numero_expediente, tipo_documento, anio, iniciador_caratula, 
-      extracto, estado_actual, destino_actual, portador_actual, foja_actual, 
-      prioridad, creado_por_id, fecha_ingreso, ultimo_movimiento_at
-    ) VALUES (
-      ${data.area_id}, ${data.numero_expediente}, ${data.tipo_documento || 'EXPEDIENTE'}, ${data.anio || now.getFullYear()},
-      ${data.iniciador_caratula}, ${data.extracto || null}, ${data.estado_actual || 'INICIADO'}, ${data.destino_actual || 'Mesa de Entradas'},
-      ${data.portador_actual || 'Mesa de Entradas'}, ${data.foja_actual || 1}, ${data.prioridad || 'NORMAL'}, ${data.creado_por_id || null},
-      ${fIngreso}, ${ultMov}
-    ) RETURNING *;
-  `;
-  const doc = res[0];
-
-  await client`
-    INSERT INTO movimientos (
-      documento_id, area_id, usuario_id, usuario_nombre, estado_nuevo, 
-      destino_nuevo, portador_nuevo, fojas_agregadas, observacion, fecha_hora
-    ) VALUES (
-      ${doc.id}, ${doc.area_id}, ${data.creado_por_id || null}, ${data.creado_por_nombre || 'Mesa de Entradas'},
-      ${doc.estado_actual}, ${doc.destino_actual}, ${doc.portador_actual}, ${doc.foja_actual},
-      ${data.observacion_inicial || 'Caratulación e ingreso inicial'}, ${fIngreso}
-    );
-  `;
-
-  if (ultMov) {
-    await client`
-      INSERT INTO movimientos (
-        documento_id, area_id, usuario_id, usuario_nombre, estado_nuevo, 
-        destino_nuevo, portador_nuevo, fojas_agregadas, observacion, fecha_hora
-      ) VALUES (
-        ${doc.id}, ${doc.area_id}, ${data.creado_por_id || null}, ${data.creado_por_nombre || 'Mesa de Entradas'},
-        ${doc.estado_actual}, ${doc.destino_actual}, ${doc.portador_actual}, ${doc.foja_actual},
-        ${'Salida registrada hacia ' + (doc.destino_actual || 'ámbito correspondiente')}, ${ultMov}
-      );
-    `;
-  }
-
-  const ultMovHora = ultMov ? new Date(ultMov).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" }) : null;
-  const ultMovFormateado = ultMov ? new Date(ultMov).toLocaleDateString("es-AR") + " " + ultMovHora : null;
-
-  return {
-    id: doc.id,
-    area_id: doc.area_id,
-    numero_expediente: doc.numero_expediente,
-    tipo_documento: doc.tipo_documento,
-    anio: doc.anio,
-    iniciador_caratula: doc.iniciador_caratula,
-    extracto: doc.extracto,
-    estado_actual: doc.estado_actual,
-    destino_actual: doc.destino_actual,
-    portador_actual: doc.portador_actual,
-    foja_actual: doc.foja_actual,
-    prioridad: doc.prioridad,
-    fecha_ingreso: fIngreso,
-    ultimo_movimiento_at: ultMov,
-    ultimo_movimiento_hora_corta: ultMovHora,
-    ultimo_movimiento_formateado: ultMovFormateado,
-    creado_por_id: doc.creado_por_id,
+  const newDoc: Documento = {
+    id: memoryDocs.length + 1,
+    area_id: data.area_id,
+    numero_expediente: data.numero_expediente,
+    tipo_documento: data.tipo_documento || "EXPEDIENTE",
+    anio: data.anio || now.getFullYear(),
+    iniciador_caratula: data.iniciador_caratula,
+    extracto: data.extracto,
+    estado_actual: data.estado_actual || "INICIADO",
+    destino_actual: data.destino_actual || "Mesa de Entradas",
+    portador_actual: data.portador_actual || "Mesa de Entradas",
+    foja_actual: data.foja_actual || 1,
+    prioridad: data.prioridad || "NORMAL",
+    fecha_ingreso: now.toISOString(),
+    ultimo_movimiento_at: now.toISOString(),
+    ultimo_movimiento_hora_corta: hora,
+    ultimo_movimiento_formateado: now.toLocaleDateString("es-AR") + " " + hora,
+    creado_por_id: data.creado_por_id,
     created_at: now.toISOString(),
     updated_at: now.toISOString(),
   };
+  memoryDocs.unshift(newDoc);
+
+  const initialMov: Movimiento = {
+    id: memoryMovimientos.length + 1,
+    documento_id: newDoc.id,
+    area_id: data.area_id,
+    usuario_nombre: data.creado_por_nombre || "Mesa de Entradas",
+    estado_nuevo: newDoc.estado_actual,
+    destino_nuevo: newDoc.destino_actual,
+    portador_nuevo: newDoc.portador_actual,
+    fojas_agregadas: newDoc.foja_actual,
+    observacion: data.observacion_inicial || "Caratulación e ingreso inicial",
+    fecha_hora: now.toISOString(),
+    hora_corta: hora,
+    fecha_formateada: now.toLocaleDateString("es-AR") + " " + hora,
+  };
+  memoryMovimientos.unshift(initialMov);
+  return newDoc;
 }
 
 export async function dbRegistrarMovimiento(data: any): Promise<Movimiento> {
@@ -693,88 +715,93 @@ export async function dbRegistrarMovimiento(data: any): Promise<Movimiento> {
   const now = new Date();
   const hora = now.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
 
-  if (!client) {
-    const doc = memoryDocs.find((d) => d.id === data.documento_id && d.area_id === data.area_id);
-    if (!doc) throw new Error("Documento no encontrado");
+  if (client) {
+    try {
+      const docRes = await client`SELECT * FROM documentos WHERE id = ${data.documento_id} AND area_id = ${data.area_id};`;
+      if (docRes.length === 0) throw new Error("Documento no encontrado");
+      const doc = docRes[0];
 
-    const mov: Movimiento = {
-      id: memoryMovimientos.length + 1,
-      documento_id: data.documento_id,
-      area_id: data.area_id,
-      usuario_id: data.usuario_id,
-      usuario_nombre: data.usuario_nombre || "Operador Despacho",
-      estado_anterior: doc.estado_actual,
-      estado_nuevo: data.estado_nuevo,
-      destino_anterior: doc.destino_actual,
-      destino_nuevo: data.destino_nuevo,
-      portador_anterior: doc.portador_actual,
-      portador_nuevo: data.portador_nuevo,
-      fojas_agregadas: data.fojas_agregadas || 0,
-      observacion: data.observacion,
-      fecha_hora: now.toISOString(),
-      hora_corta: hora,
-      fecha_formateada: now.toLocaleDateString("es-AR") + " " + hora,
-    };
-    memoryMovimientos.unshift(mov);
+      const movRes = await client`
+        INSERT INTO movimientos (
+          documento_id, area_id, usuario_id, usuario_nombre, estado_anterior, estado_nuevo,
+          destino_anterior, destino_nuevo, portador_anterior, portador_nuevo, fojas_agregadas,
+          observacion, fecha_hora
+        ) VALUES (
+          ${doc.id}, ${doc.area_id}, ${data.usuario_id || null}, ${data.usuario_nombre || 'Operador'},
+          ${doc.estado_actual}, ${data.estado_nuevo}, ${doc.destino_actual}, ${data.destino_nuevo},
+          ${doc.portador_actual}, ${data.portador_nuevo}, ${data.fojas_agregadas || 0},
+          ${data.observacion || null}, ${now.toISOString()}
+        ) RETURNING *;
+      `;
 
-    doc.estado_actual = data.estado_nuevo;
-    doc.destino_actual = data.destino_nuevo;
-    doc.portador_actual = data.portador_nuevo;
-    if (data.fojas_agregadas > 0) doc.foja_actual += data.fojas_agregadas;
-    doc.ultimo_movimiento_at = now.toISOString();
-    doc.ultimo_movimiento_hora_corta = hora;
-    doc.ultimo_movimiento_formateado = now.toLocaleDateString("es-AR") + " " + hora;
+      await client`
+        UPDATE documentos SET
+          estado_actual = ${data.estado_nuevo},
+          destino_actual = ${data.destino_nuevo},
+          portador_actual = ${data.portador_nuevo},
+          foja_actual = foja_actual + ${data.fojas_agregadas || 0},
+          ultimo_movimiento_at = ${now.toISOString()},
+          updated_at = ${now.toISOString()}
+        WHERE id = ${doc.id};
+      `;
 
-    return mov;
+      const m = movRes[0];
+      return {
+        id: m.id,
+        documento_id: m.documento_id,
+        area_id: m.area_id,
+        usuario_id: m.usuario_id,
+        usuario_nombre: m.usuario_nombre,
+        estado_anterior: m.estado_anterior,
+        estado_nuevo: m.estado_nuevo,
+        destino_anterior: m.destino_anterior,
+        destino_nuevo: m.destino_nuevo,
+        portador_anterior: m.portador_anterior,
+        portador_nuevo: m.portador_nuevo,
+        fojas_agregadas: m.fojas_agregadas,
+        observacion: m.observacion,
+        fecha_hora: now.toISOString(),
+        hora_corta: hora,
+        fecha_formateada: now.toLocaleDateString("es-AR") + " " + hora,
+      };
+    } catch (err: any) {
+      console.warn("Postgres registrar movimiento failed, falling back to memory:", err?.message);
+      disablePostgres(err?.message);
+    }
   }
 
-  const docRes = await client`SELECT * FROM documentos WHERE id = ${data.documento_id} AND area_id = ${data.area_id};`;
-  if (docRes.length === 0) throw new Error("Documento no encontrado");
-  const doc = docRes[0];
+  const doc = memoryDocs.find((d) => d.id === data.documento_id && d.area_id === data.area_id);
+  if (!doc) throw new Error("Documento no encontrado");
 
-  const movRes = await client`
-    INSERT INTO movimientos (
-      documento_id, area_id, usuario_id, usuario_nombre, estado_anterior, estado_nuevo,
-      destino_anterior, destino_nuevo, portador_anterior, portador_nuevo, fojas_agregadas,
-      observacion, fecha_hora
-    ) VALUES (
-      ${doc.id}, ${doc.area_id}, ${data.usuario_id || null}, ${data.usuario_nombre || 'Operador'},
-      ${doc.estado_actual}, ${data.estado_nuevo}, ${doc.destino_actual}, ${data.destino_nuevo},
-      ${doc.portador_actual}, ${data.portador_nuevo}, ${data.fojas_agregadas || 0},
-      ${data.observacion || null}, ${now.toISOString()}
-    ) RETURNING *;
-  `;
-
-  await client`
-    UPDATE documentos SET
-      estado_actual = ${data.estado_nuevo},
-      destino_actual = ${data.destino_nuevo},
-      portador_actual = ${data.portador_nuevo},
-      foja_actual = foja_actual + ${data.fojas_agregadas || 0},
-      ultimo_movimiento_at = ${now.toISOString()},
-      updated_at = ${now.toISOString()}
-    WHERE id = ${doc.id};
-  `;
-
-  const m = movRes[0];
-  return {
-    id: m.id,
-    documento_id: m.documento_id,
-    area_id: m.area_id,
-    usuario_id: m.usuario_id,
-    usuario_nombre: m.usuario_nombre,
-    estado_anterior: m.estado_anterior,
-    estado_nuevo: m.estado_nuevo,
-    destino_anterior: m.destino_anterior,
-    destino_nuevo: m.destino_nuevo,
-    portador_anterior: m.portador_anterior,
-    portador_nuevo: m.portador_nuevo,
-    fojas_agregadas: m.fojas_agregadas,
-    observacion: m.observacion,
+  const mov: Movimiento = {
+    id: memoryMovimientos.length + 1,
+    documento_id: data.documento_id,
+    area_id: data.area_id,
+    usuario_id: data.usuario_id,
+    usuario_nombre: data.usuario_nombre || "Operador Despacho",
+    estado_anterior: doc.estado_actual,
+    estado_nuevo: data.estado_nuevo,
+    destino_anterior: doc.destino_actual,
+    destino_nuevo: data.destino_nuevo,
+    portador_anterior: doc.portador_actual,
+    portador_nuevo: data.portador_nuevo,
+    fojas_agregadas: data.fojas_agregadas || 0,
+    observacion: data.observacion,
     fecha_hora: now.toISOString(),
     hora_corta: hora,
     fecha_formateada: now.toLocaleDateString("es-AR") + " " + hora,
   };
+  memoryMovimientos.unshift(mov);
+
+  doc.estado_actual = data.estado_nuevo;
+  doc.destino_actual = data.destino_nuevo;
+  doc.portador_actual = data.portador_nuevo;
+  if (data.fojas_agregadas > 0) doc.foja_actual += data.fojas_agregadas;
+  doc.ultimo_movimiento_at = now.toISOString();
+  doc.ultimo_movimiento_hora_corta = hora;
+  doc.ultimo_movimiento_formateado = now.toLocaleDateString("es-AR") + " " + hora;
+
+  return mov;
 }
 
 export async function dbGetMovimientosRecientes(
@@ -1074,56 +1101,61 @@ export async function dbLimpiarDatosPrueba(areaId?: number): Promise<{ limpiados
 // -------------------------------------------------------------
 
 export async function dbAuthenticateUser(username: string, password: string): Promise<Usuario | null> {
-  await ensureDbInitialized();
   const cleanUsername = username.trim().toLowerCase();
   const client = getDbClient();
 
-  if (!client) {
-    const user = memoryUsers.find(
-      (u) =>
-        (u.username.toLowerCase() === cleanUsername ||
-          u.nombre_completo.toLowerCase() === cleanUsername ||
-          u.username.toLowerCase().replace(/\s/g, "") === cleanUsername.replace(/\s/g, "")) &&
-        u.activo
-    );
-    if (!user) return null;
-    if (!verifyPassword(password, user.password_hash)) return null;
-    const area = memoryAreas.find((a) => a.id === user.area_id);
-    return {
-      id: user.id,
-      area_id: user.area_id,
-      area_nombre: area?.nombre || "Secretaría Privada - Ministerio de Gobierno",
-      username: user.username,
-      nombre_completo: user.nombre_completo,
-      rol: user.rol,
-      activo: user.activo,
-    };
+  if (client) {
+    try {
+      await ensureDbInitialized();
+      const rows = await client`
+        SELECT u.*, a.nombre as area_nombre 
+        FROM usuarios u
+        JOIN areas a ON a.id = u.area_id
+        WHERE (LOWER(u.username) = ${cleanUsername} OR LOWER(u.nombre_completo) = ${cleanUsername} OR REPLACE(LOWER(u.nombre_completo), ' ', '') = ${cleanUsername.replace(/\s/g, '')})
+          AND u.activo = true
+        LIMIT 1;
+      `;
+
+      if (rows.length > 0) {
+        const r = rows[0];
+        if (verifyPassword(password, r.password_hash)) {
+          return {
+            id: r.id,
+            area_id: r.area_id,
+            area_nombre: r.area_nombre,
+            username: r.username,
+            nombre_completo: r.nombre_completo,
+            rol: r.rol,
+            activo: r.activo,
+          };
+        }
+        return null;
+      }
+    } catch (error: any) {
+      console.warn("Postgres authentication failed, disabling Postgres and falling back to memory:", error?.message);
+      disablePostgres(error?.message);
+    }
   }
 
-  const rows = await client`
-    SELECT u.*, a.nombre as area_nombre 
-    FROM usuarios u
-    JOIN areas a ON a.id = u.area_id
-    WHERE (LOWER(u.username) = ${cleanUsername} OR LOWER(u.nombre_completo) = ${cleanUsername} OR REPLACE(LOWER(u.nombre_completo), ' ', '') = ${cleanUsername.replace(/\s/g, '')})
-      AND u.activo = true
-    LIMIT 1;
-  `;
-
-  if (rows.length === 0) return null;
-  const r = rows[0];
-
-  if (!verifyPassword(password, r.password_hash)) {
-    return null;
-  }
-
+  // Fallback to memory store
+  const user = memoryUsers.find(
+    (u) =>
+      (u.username.toLowerCase() === cleanUsername ||
+        u.nombre_completo.toLowerCase() === cleanUsername ||
+        u.username.toLowerCase().replace(/\s/g, "") === cleanUsername.replace(/\s/g, "")) &&
+      u.activo
+  );
+  if (!user) return null;
+  if (!verifyPassword(password, user.password_hash)) return null;
+  const area = memoryAreas.find((a) => a.id === user.area_id);
   return {
-    id: r.id,
-    area_id: r.area_id,
-    area_nombre: r.area_nombre,
-    username: r.username,
-    nombre_completo: r.nombre_completo,
-    rol: r.rol,
-    activo: r.activo,
+    id: user.id,
+    area_id: user.area_id,
+    area_nombre: area?.nombre || "Secretaría Privada - Ministerio de Gobierno",
+    username: user.username,
+    nombre_completo: user.nombre_completo,
+    rol: user.rol,
+    activo: user.activo,
   };
 }
 
@@ -1132,28 +1164,33 @@ export async function dbChangePassword(
   oldPassword: string,
   newPassword: string
 ): Promise<{ success: boolean; message: string }> {
-  await ensureDbInitialized();
   const client = getDbClient();
 
-  if (!client) {
-    const user = memoryUsers.find((u) => u.id === userId);
-    if (!user) return { success: false, message: "Usuario no encontrado" };
-    if (!verifyPassword(oldPassword, user.password_hash)) {
-      return { success: false, message: "La contraseña actual no es correcta" };
+  if (client) {
+    try {
+      await ensureDbInitialized();
+      const rows = await client`SELECT * FROM usuarios WHERE id = ${userId};`;
+      if (rows.length === 0) return { success: false, message: "Usuario no encontrado" };
+      const r = rows[0];
+
+      if (!verifyPassword(oldPassword, r.password_hash)) {
+        return { success: false, message: "La contraseña actual no es correcta" };
+      }
+
+      const newHash = hashPassword(newPassword);
+      await client`UPDATE usuarios SET password_hash = ${newHash} WHERE id = ${userId};`;
+      return { success: true, message: "Contraseña actualizada exitosamente" };
+    } catch (error: any) {
+      console.warn("Postgres change password failed, disabling Postgres and falling back to memory:", error?.message);
+      disablePostgres(error?.message);
     }
-    user.password_hash = hashPassword(newPassword);
-    return { success: true, message: "Contraseña actualizada exitosamente" };
   }
 
-  const rows = await client`SELECT * FROM usuarios WHERE id = ${userId};`;
-  if (rows.length === 0) return { success: false, message: "Usuario no encontrado" };
-  const r = rows[0];
-
-  if (!verifyPassword(oldPassword, r.password_hash)) {
+  const user = memoryUsers.find((u) => u.id === userId);
+  if (!user) return { success: false, message: "Usuario no encontrado" };
+  if (!verifyPassword(oldPassword, user.password_hash)) {
     return { success: false, message: "La contraseña actual no es correcta" };
   }
-
-  const newHash = hashPassword(newPassword);
-  await client`UPDATE usuarios SET password_hash = ${newHash} WHERE id = ${userId};`;
+  user.password_hash = hashPassword(newPassword);
   return { success: true, message: "Contraseña actualizada exitosamente" };
 }
