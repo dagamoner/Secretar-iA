@@ -710,6 +710,146 @@ export async function dbCreateDocumento(data: any): Promise<Documento> {
   return newDoc;
 }
 
+export async function dbUpdateDocumento(
+  docId: number,
+  areaId: number,
+  data: Partial<Documento> & { observacion_edicion?: string; usuario_nombre?: string; usuario_id?: number }
+): Promise<Documento> {
+  const client = getDbClient();
+  const now = new Date();
+  const hora = now.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
+  const fechaFormateada = now.toLocaleDateString("es-AR") + " " + hora;
+
+  if (client) {
+    try {
+      const fIngreso = data.fecha_ingreso ? new Date(data.fecha_ingreso).toISOString() : undefined;
+      const ultMov = data.ultimo_movimiento_at ? new Date(data.ultimo_movimiento_at).toISOString() : undefined;
+
+      const res = await client`
+        UPDATE documentos SET
+          numero_expediente = COALESCE(${data.numero_expediente || null}, numero_expediente),
+          tipo_documento = COALESCE(${data.tipo_documento || null}, tipo_documento),
+          anio = COALESCE(${data.anio || null}, anio),
+          iniciador_caratula = COALESCE(${data.iniciador_caratula || null}, iniciador_caratula),
+          extracto = COALESCE(${data.extracto || null}, extracto),
+          estado_actual = COALESCE(${data.estado_actual || null}, estado_actual),
+          destino_actual = COALESCE(${data.destino_actual || null}, destino_actual),
+          portador_actual = COALESCE(${data.portador_actual || null}, portador_actual),
+          foja_actual = COALESCE(${data.foja_actual || null}, foja_actual),
+          prioridad = COALESCE(${data.prioridad || null}, prioridad),
+          fecha_ingreso = COALESCE(${fIngreso || null}, fecha_ingreso),
+          ultimo_movimiento_at = COALESCE(${ultMov || null}, ultimo_movimiento_at),
+          updated_at = ${now.toISOString()}
+        WHERE id = ${docId} AND area_id = ${areaId}
+        RETURNING *;
+      `;
+
+      if (res.length > 0) {
+        const doc = res[0];
+        if (data.observacion_edicion || data.usuario_nombre) {
+          await client`
+            INSERT INTO movimientos (
+              documento_id, area_id, usuario_id, usuario_nombre, estado_nuevo,
+              destino_nuevo, portador_nuevo, fojas_agregadas, observacion, fecha_hora
+            ) VALUES (
+              ${doc.id}, ${doc.area_id}, ${data.usuario_id || null}, ${data.usuario_nombre || 'Operador SPMG'},
+              ${doc.estado_actual}, ${doc.destino_actual}, ${doc.portador_actual}, 0,
+              ${data.observacion_edicion || 'Actualización de datos del expediente'}, ${now.toISOString()}
+            );
+          `;
+        }
+
+        const ult = doc.ultimo_movimiento_at ? new Date(doc.ultimo_movimiento_at) : null;
+        const ultHora = ult ? ult.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" }) : null;
+        const ultFecha = ult ? ult.toLocaleDateString("es-AR") + " " + ultHora : null;
+
+        const updatedDoc: Documento = {
+          id: doc.id,
+          area_id: doc.area_id,
+          numero_expediente: doc.numero_expediente,
+          tipo_documento: doc.tipo_documento,
+          anio: doc.anio,
+          iniciador_caratula: doc.iniciador_caratula,
+          extracto: doc.extracto,
+          estado_actual: doc.estado_actual,
+          destino_actual: doc.destino_actual,
+          portador_actual: doc.portador_actual,
+          foja_actual: doc.foja_actual,
+          prioridad: doc.prioridad,
+          fecha_ingreso: doc.fecha_ingreso ? new Date(doc.fecha_ingreso).toISOString() : now.toISOString(),
+          ultimo_movimiento_at: ult ? ult.toISOString() : null,
+          ultimo_movimiento_hora_corta: ultHora,
+          ultimo_movimiento_formateado: ultFecha,
+          creado_por_id: doc.creado_por_id,
+          created_at: doc.created_at ? new Date(doc.created_at).toISOString() : now.toISOString(),
+          updated_at: doc.updated_at ? new Date(doc.updated_at).toISOString() : now.toISOString(),
+        };
+
+        const memIdx = memoryDocs.findIndex((d) => d.id === docId && d.area_id === areaId);
+        if (memIdx !== -1) {
+          memoryDocs[memIdx] = { ...memoryDocs[memIdx], ...updatedDoc };
+        }
+        return updatedDoc;
+      }
+    } catch (err: any) {
+      console.warn("Postgres update documento failed, falling back to memory:", err?.message);
+      disablePostgres(err?.message);
+    }
+  }
+
+  // In-Memory store update
+  const memDoc = memoryDocs.find((d) => d.id === docId && d.area_id === areaId);
+  if (!memDoc) {
+    throw new Error(`Documento con ID #${docId} no encontrado`);
+  }
+
+  if (data.numero_expediente) memDoc.numero_expediente = data.numero_expediente.trim();
+  if (data.tipo_documento) memDoc.tipo_documento = data.tipo_documento.trim();
+  if (data.anio) memDoc.anio = Number(data.anio);
+  if (data.iniciador_caratula) memDoc.iniciador_caratula = data.iniciador_caratula.trim();
+  if (data.extracto !== undefined) memDoc.extracto = data.extracto ? data.extracto.trim() : undefined;
+  if (data.estado_actual) memDoc.estado_actual = data.estado_actual.trim();
+  if (data.destino_actual) memDoc.destino_actual = data.destino_actual.trim();
+  if (data.portador_actual) memDoc.portador_actual = data.portador_actual.trim();
+  if (data.foja_actual !== undefined) memDoc.foja_actual = Number(data.foja_actual) || 1;
+  if (data.prioridad) memDoc.prioridad = data.prioridad.trim();
+  if (data.fecha_ingreso) memDoc.fecha_ingreso = new Date(data.fecha_ingreso).toISOString();
+  if (data.ultimo_movimiento_at !== undefined) {
+    memDoc.ultimo_movimiento_at = data.ultimo_movimiento_at ? new Date(data.ultimo_movimiento_at).toISOString() : null;
+    if (memDoc.ultimo_movimiento_at) {
+      const u = new Date(memDoc.ultimo_movimiento_at);
+      memDoc.ultimo_movimiento_hora_corta = u.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" });
+      memDoc.ultimo_movimiento_formateado = u.toLocaleDateString("es-AR") + " " + memDoc.ultimo_movimiento_hora_corta;
+    } else {
+      memDoc.ultimo_movimiento_hora_corta = null;
+      memDoc.ultimo_movimiento_formateado = null;
+    }
+  }
+  memDoc.updated_at = now.toISOString();
+
+  // Add audit movement
+  if (data.observacion_edicion || data.usuario_nombre) {
+    const editMov: Movimiento = {
+      id: memoryMovimientos.length + 1,
+      documento_id: memDoc.id,
+      area_id: memDoc.area_id,
+      usuario_id: data.usuario_id,
+      usuario_nombre: data.usuario_nombre || "Operador SPMG",
+      estado_nuevo: memDoc.estado_actual,
+      destino_nuevo: memDoc.destino_actual,
+      portador_nuevo: memDoc.portador_actual,
+      fojas_agregadas: 0,
+      observacion: data.observacion_edicion || "Actualización de datos del expediente",
+      fecha_hora: now.toISOString(),
+      hora_corta: hora,
+      fecha_formateada: fechaFormateada,
+    };
+    memoryMovimientos.unshift(editMov);
+  }
+
+  return { ...memDoc };
+}
+
 export async function dbRegistrarMovimiento(data: any): Promise<Movimiento> {
   const client = getDbClient();
   const now = new Date();

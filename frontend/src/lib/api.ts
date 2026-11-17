@@ -74,6 +74,27 @@ export async function crearDocumento(data: {
   return res.json();
 }
 
+export async function updateDocumento(
+  docId: number,
+  areaId: number,
+  data: Partial<Documento> & {
+    usuario_id?: number;
+    usuario_nombre?: string;
+    observacion_edicion?: string;
+  }
+): Promise<Documento> {
+  const res = await fetch(`${API_BASE}/documentos/${docId}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ...data, area_id: areaId }),
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.error || errorData.detail || "Error al actualizar documento");
+  }
+  return res.json();
+}
+
 export async function registrarMovimiento(data: {
   area_id: number;
   documento_id: number;

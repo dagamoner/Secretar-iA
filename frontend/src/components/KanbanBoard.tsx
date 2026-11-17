@@ -27,6 +27,7 @@ import {
   Send,
   Sparkles,
   Printer,
+  Edit3,
 } from "lucide-react";
 import { cn, normalizeSearchText } from "@/lib/utils";
 
@@ -37,6 +38,7 @@ interface KanbanBoardProps {
   selectedDocId: number | null;
   onArchivarDoc?: (doc: Documento) => void;
   onOpenReceiptModal?: (doc: Documento) => void;
+  onOpenEditModal?: (doc: Documento) => void;
 }
 
 interface KanbanColumnDef {
@@ -140,6 +142,7 @@ export function KanbanBoard({
   selectedDocId,
   onArchivarDoc,
   onOpenReceiptModal,
+  onOpenEditModal,
 }: KanbanBoardProps) {
   const [copiedId, setCopiedId] = useState<number | null>(null);
   const [columnLimits, setColumnLimits] = useState<Record<string, number>>({});
@@ -737,6 +740,20 @@ export function KanbanBoard({
                           </span>
 
                           <div className="flex items-center space-x-1.5">
+                            {onOpenEditModal && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onOpenEditModal(doc);
+                                }}
+                                className="inline-flex items-center rounded-md border border-slate-200 bg-white p-1 text-slate-500 hover:text-amber-600 hover:border-amber-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:text-amber-400 transition shadow-2xs cursor-pointer"
+                                title="Editar datos del trámite"
+                              >
+                                <Edit3 className="h-3 w-3" />
+                              </button>
+                            )}
+
                             {onOpenReceiptModal && (
                               <button
                                 type="button"

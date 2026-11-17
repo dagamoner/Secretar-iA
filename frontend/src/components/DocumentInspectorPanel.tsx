@@ -5,6 +5,7 @@ import { Documento, Movimiento } from "@/types";
 import {
   X,
   Printer,
+  Edit3,
   ArrowRight,
   Archive,
   Copy,
@@ -30,6 +31,7 @@ interface DocumentInspectorPanelProps {
   onOpenMovementDrawer: (doc: Documento) => void;
   onOpenReceiptModal: (doc: Documento) => void;
   onArchivarDoc?: (doc: Documento) => void;
+  onOpenEditModal?: (doc: Documento) => void;
 }
 
 export function DocumentInspectorPanel({
@@ -38,6 +40,7 @@ export function DocumentInspectorPanel({
   onOpenMovementDrawer,
   onOpenReceiptModal,
   onArchivarDoc,
+  onOpenEditModal,
 }: DocumentInspectorPanelProps) {
   const [copied, setCopied] = useState(false);
 
@@ -91,6 +94,16 @@ export function DocumentInspectorPanel({
         </div>
 
         <div className="flex items-center space-x-1">
+          {onOpenEditModal && (
+            <button
+              type="button"
+              onClick={() => onOpenEditModal(documento)}
+              title="Editar datos del trámite"
+              className="rounded-lg p-1.5 text-slate-500 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-slate-800 dark:hover:text-amber-400 transition cursor-pointer"
+            >
+              <Edit3 className="h-4 w-4" />
+            </button>
+          )}
           <button
             type="button"
             onClick={() => onOpenReceiptModal(documento)}
@@ -329,11 +342,22 @@ export function DocumentInspectorPanel({
 
       {/* Footer Action Buttons */}
       <div className="border-t border-slate-200 p-3.5 bg-slate-50/80 dark:border-slate-800 dark:bg-slate-900 space-y-2">
+        {onOpenEditModal && (
+          <button
+            type="button"
+            onClick={() => onOpenEditModal(documento)}
+            className="w-full flex items-center justify-center space-x-1.5 rounded-xl border border-amber-300/80 bg-amber-50/70 py-2 text-xs font-bold text-amber-900 hover:bg-amber-100/80 shadow-2xs active:scale-95 transition dark:border-amber-800/60 dark:bg-amber-950/30 dark:text-amber-200 dark:hover:bg-amber-900/40 cursor-pointer"
+          >
+            <Edit3 className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+            <span>Editar Datos del Trámite</span>
+          </button>
+        )}
+
         <div className="grid grid-cols-2 gap-2">
           <button
             type="button"
             onClick={() => onOpenReceiptModal(documento)}
-            className="flex items-center justify-center space-x-1.5 rounded-xl border border-slate-300 bg-white py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 shadow-2xs active:scale-95 transition dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+            className="flex items-center justify-center space-x-1.5 rounded-xl border border-slate-300 bg-white py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 shadow-2xs active:scale-95 transition dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 cursor-pointer"
           >
             <Printer className="h-3.5 w-3.5" />
             <span>Remito Oficial</span>

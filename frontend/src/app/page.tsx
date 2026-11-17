@@ -19,6 +19,7 @@ import { DenseDocumentTable } from "@/components/DenseDocumentTable";
 import { KanbanBoard } from "@/components/KanbanBoard";
 import { MovementDrawer } from "@/components/MovementDrawer";
 import { NewDocumentModal } from "@/components/NewDocumentModal";
+import { EditDocumentModal } from "@/components/EditDocumentModal";
 import { KeyboardShortcutsHelp } from "@/components/KeyboardShortcutsHelp";
 import { AdminModal } from "@/components/AdminModal";
 import { LoginScreen } from "@/components/LoginScreen";
@@ -47,6 +48,7 @@ export default function HomePage() {
   const [selectedDoc, setSelectedDoc] = useState<Documento | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isNewDocOpen, setIsNewDocOpen] = useState(false);
+  const [editingDoc, setEditingDoc] = useState<Documento | null>(null);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [isDashboardOpen, setIsDashboardOpen] = useState(false);
@@ -144,6 +146,17 @@ export default function HomePage() {
   const handleOpenReceipt = (doc: Documento) => {
     setReceiptDoc(doc);
     setIsReceiptModalOpen(true);
+  };
+
+  const handleSaveEditedDoc = (updatedDoc: Documento) => {
+    queryClient.setQueryData(["documentos", currentAreaId], (oldData: Documento[] | undefined) => {
+      if (!oldData) return [updatedDoc];
+      return oldData.map((d) => (d.id === updatedDoc.id ? updatedDoc : d));
+    });
+    if (selectedDoc?.id === updatedDoc.id) {
+      setSelectedDoc(updatedDoc);
+    }
+    queryClient.invalidateQueries({ queryKey: ["documentos", currentAreaId] });
   };
 
   // Update current user info if refreshed in usuarios list
@@ -559,6 +572,7 @@ export default function HomePage() {
               }}
               onArchivarDoc={handleArchivarDoc}
               onOpenReceiptModal={handleOpenReceipt}
+              onOpenEditModal={(doc) => setEditingDoc(doc)}
             />
           ) : (
             <DenseDocumentTable
@@ -577,6 +591,7 @@ export default function HomePage() {
               }}
               onArchivarDoc={handleArchivarDoc}
               onOpenReceiptModal={handleOpenReceipt}
+              onOpenEditModal={(doc) => setEditingDoc(doc)}
               highlightedDocIds={highlightedDocIds}
               activeEditors={activeEditors}
             />
@@ -594,6 +609,7 @@ export default function HomePage() {
             }}
             onOpenReceiptModal={handleOpenReceipt}
             onArchivarDoc={handleArchivarDoc}
+            onOpenEditModal={(doc) => setEditingDoc(doc)}
           />
         )}
       </main>
@@ -606,6 +622,19 @@ export default function HomePage() {
           currentUser={currentUser}
           catalogosDestinos={catalogosDestinos}
           onClose={() => setIsDrawerOpen(false)}
+        />
+      )}
+
+      {/* Edit Document Modal */}
+      {editingDoc && (
+        <EditDocumentModal
+          isOpen={Boolean(editingDoc)}
+          documento={editingDoc}
+          onClose={() => setEditingDoc(null)}
+          onSaved={handleSaveEditedDoc}
+          areaId={currentAreaId}
+          currentUser={currentUser}
+          catalogosDestinos={catalogosDestinos}
         />
       )}
 

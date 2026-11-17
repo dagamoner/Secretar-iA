@@ -38,6 +38,7 @@ interface DenseDocumentTableProps {
   onOpenMovementDrawer: (doc: Documento) => void;
   onArchivarDoc?: (doc: Documento) => void;
   onOpenReceiptModal?: (doc: Documento) => void;
+  onOpenEditModal?: (doc: Documento) => void;
   highlightedDocIds: Set<number>;
   activeEditors: Record<number, string>;
   selectedIndex: number;
@@ -50,6 +51,7 @@ export function DenseDocumentTable({
   onOpenMovementDrawer,
   onArchivarDoc,
   onOpenReceiptModal,
+  onOpenEditModal,
   highlightedDocIds,
   activeEditors,
   selectedIndex,
@@ -370,6 +372,19 @@ export function DenseDocumentTable({
 
             return (
               <div className="flex items-center space-x-1.5 justify-end">
+                {onOpenEditModal && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onOpenEditModal(doc);
+                    }}
+                    className="inline-flex items-center rounded-md border border-slate-200 bg-white p-1 text-slate-500 hover:text-amber-600 hover:border-amber-300 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400 dark:hover:text-amber-400 transition shadow-2xs cursor-pointer"
+                    title="Editar datos del trámite"
+                  >
+                    <Edit3 className="h-3 w-3" />
+                  </button>
+                )}
                 {onOpenReceiptModal && (
                   <button
                     type="button"
@@ -402,6 +417,19 @@ export function DenseDocumentTable({
           // Document is physically in the office, allow Pase
           return (
             <div className="flex items-center space-x-1.5 justify-end">
+              {onOpenEditModal && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onOpenEditModal(doc);
+                  }}
+                  className="inline-flex items-center rounded-md border border-slate-200 bg-white p-1 text-slate-500 hover:text-amber-600 hover:border-amber-300 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400 dark:hover:text-amber-400 transition shadow-2xs cursor-pointer"
+                  title="Editar datos del trámite"
+                >
+                  <Edit3 className="h-3 w-3" />
+                </button>
+              )}
               {onOpenReceiptModal && (
                 <button
                   type="button"
@@ -432,7 +460,7 @@ export function DenseDocumentTable({
         },
       },
     ],
-    [highlightedDocIds, activeEditors, onOpenMovementDrawer, onArchivarDoc, onOpenReceiptModal, copiedId]
+    [highlightedDocIds, activeEditors, onOpenMovementDrawer, onArchivarDoc, onOpenReceiptModal, onOpenEditModal, copiedId]
   );
 
   const table = useReactTable({
