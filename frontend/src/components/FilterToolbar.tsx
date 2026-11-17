@@ -247,8 +247,8 @@ export function FilterToolbar({
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
                 </span>
-                <span>⚡ Urgentes</span>
-                <span className="rounded-full bg-rose-200 px-1.5 py-0.2 text-[10px] font-mono font-black text-rose-950 dark:bg-rose-900 dark:text-rose-200">
+                <span>⚡ Urgentes y P.D.</span>
+                <span className="rounded-full bg-rose-200 px-1.5 py-0.2 text-[10px] font-mono font-black text-rose-950 dark:bg-rose-900 dark:text-rose-200" title="23 prioritarios en total (6 Urgentes + 17 Pronto Despacho)">
                   {stats.urgentes}
                 </span>
               </button>
@@ -504,8 +504,8 @@ export function FilterToolbar({
               >
                 <option value="TODOS">Todas las prioridades</option>
                 <option value="URGENTES_TODOS">⚡ Urgentes y Pronto Despacho ({stats?.urgentes || 23})</option>
-                <option value="URGENTE">Solo URGENTE (6)</option>
-                <option value="PRONTO DESPACHO">Solo PRONTO DESPACHO (17)</option>
+                <option value="URGENTE">⚡ Solo Urgentes ({stats ? "6" : "6"})</option>
+                <option value="PRONTO DESPACHO">⚡ Solo Pronto Despacho ({stats ? "17" : "17"})</option>
                 <option value="NORMAL">NORMAL</option>
               </select>
             </div>

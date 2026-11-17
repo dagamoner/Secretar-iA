@@ -39,78 +39,24 @@ let memoryUsers: Usuario[] = [
   { id: 3, area_id: 1, username: "betianasalinas", nombre_completo: "Betiana Salinas", rol: "OPERADOR", activo: true, password_hash: hashPassword("betiana2026") },
 ];
 
-let memoryDestinos: CatalogoDestino[] = [
-  { id: 1, area_id: 1, nombre: "Despacho de Presidencia", responsable_defecto: "Roberto Silva", activo: true },
-  { id: 2, area_id: 1, nombre: "Asuntos Jurídicos", responsable_defecto: "Dr. Andrés Suárez", activo: true },
-  { id: 3, area_id: 1, nombre: "Secretaría de Hacienda", responsable_defecto: "Cra. Patricia Varela", activo: true },
-  { id: 4, area_id: 1, nombre: "Archivo Central", responsable_defecto: "Mesa de Entradas", activo: true },
-];
+import seedDocuments from "./seed_documentos.json";
 
-let memoryDocs: Documento[] = [
-  {
-    id: 1,
-    area_id: 1,
-    numero_expediente: "EXP-2026-00104-MEG",
-    tipo_documento: "EXPEDIENTE",
-    anio: 2026,
-    iniciador_caratula: "Dirección de RRHH - S/ Adquisición de Licencias de Software y Cómputo",
-    extracto: "Solicitud de presupuesto y compra directa para 45 puestos de trabajo administrativos.",
-    estado_actual: "DESPACHO",
-    destino_actual: "Despacho de Presidencia",
-    portador_actual: "Roberto Silva",
-    foja_actual: 34,
-    prioridad: "URGENTE",
-    fecha_ingreso: new Date(Date.now() - 172800000).toISOString(),
-    ultimo_movimiento_at: null,
-    ultimo_movimiento_hora_corta: null,
-    ultimo_movimiento_formateado: null,
-    creado_por_id: 1,
-    created_at: new Date(Date.now() - 172800000).toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  {
-    id: 2,
-    area_id: 1,
-    numero_expediente: "NOTA-2026-0042-MEG",
-    tipo_documento: "NOTA",
-    anio: 2026,
-    iniciador_caratula: "Secretaría de Obras Públicas - S/ Mantenimiento de Servidores y Climatización",
-    extracto: "Informe de temperatura y necesidad de reemplazo de UPS en sala de rack.",
-    estado_actual: "FIRMADO",
-    destino_actual: "Archivo Central",
-    portador_actual: "Mesa de Entradas",
-    foja_actual: 6,
-    prioridad: "NORMAL",
-    fecha_ingreso: new Date(Date.now() - 432000000).toISOString(),
-    ultimo_movimiento_at: new Date(Date.now() - 13200000).toISOString(),
-    ultimo_movimiento_hora_corta: "09:50",
-    ultimo_movimiento_formateado: "16/11/2026 09:50",
-    creado_por_id: 1,
-    created_at: new Date(Date.now() - 432000000).toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  {
-    id: 3,
-    area_id: 1,
-    numero_expediente: "RES-2026-0089-MEG",
-    tipo_documento: "RESOLUCION",
-    anio: 2026,
-    iniciador_caratula: "Presidencia - Designación de Personal Técnico de Guardia Operativa",
-    extracto: "Resolución que designa personal técnico rotativo para guardia 24/7.",
-    estado_actual: "EN MANO",
-    destino_actual: "Secretaría de Hacienda",
-    portador_actual: "Cra. Patricia Varela",
-    foja_actual: 18,
-    prioridad: "PRONTO DESPACHO",
-    fecha_ingreso: new Date(Date.now() - 86400000).toISOString(),
-    ultimo_movimiento_at: new Date(Date.now() - 1500000).toISOString(),
-    ultimo_movimiento_hora_corta: "13:05",
-    ultimo_movimiento_formateado: "16/11/2026 13:05",
-    creado_por_id: 2,
-    created_at: new Date(Date.now() - 86400000).toISOString(),
-    updated_at: new Date().toISOString(),
-  }
-];
+// In-Memory store seeded directly with full official documents (4,595 records)
+let memoryDocs: Documento[] = (seedDocuments as unknown as Documento[]) || [];
+
+// Populate destinations catalogue dynamically from seed documents
+const uniqueDestinos = new Set<string>();
+memoryDocs.forEach((d) => {
+  if (d.destino_actual) uniqueDestinos.add(d.destino_actual.trim());
+});
+
+let memoryDestinos: CatalogoDestino[] = Array.from(uniqueDestinos).slice(0, 100).map((nombre, idx) => ({
+  id: idx + 1,
+  area_id: 1,
+  nombre,
+  responsable_defecto: "Mesa de Entradas",
+  activo: true,
+}));
 
 let memoryMovimientos: Movimiento[] = [
   {
@@ -419,6 +365,7 @@ export async function dbGetDocumentos(areaId: number, filters?: Partial<FilterSt
   const client = getDbClient();
   if (!client) {
     let list = memoryDocs.filter((d) => d.area_id === areaId);
+
     if (filters?.search && filters.search.trim()) {
       const q = normalizeSearchText(filters.search);
       list = list.filter((d) => {
@@ -472,7 +419,7 @@ export async function dbGetDocumentos(areaId: number, filters?: Partial<FilterSt
       ORDER BY COALESCE(ultimo_movimiento_at, fecha_ingreso) DESC, id DESC 
       LIMIT 15000;
     `;
-    let result = rows.map((r: any) => {
+    let result: Documento[] = rows.map((r: any): Documento => {
       const ult = r.ultimo_movimiento_at ? new Date(r.ultimo_movimiento_at) : null;
       const hora = ult ? ult.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" }) : null;
       const fecha = ult ? ult.toLocaleDateString("es-AR") + " " + hora : null;
@@ -483,7 +430,7 @@ export async function dbGetDocumentos(areaId: number, filters?: Partial<FilterSt
         tipo_documento: r.tipo_documento,
         anio: r.anio,
         iniciador_caratula: r.iniciador_caratula,
-        extracto: r.extracto,
+        extracto: r.extracto || undefined,
         estado_actual: r.estado_actual,
         destino_actual: r.destino_actual,
         portador_actual: r.portador_actual,
@@ -498,6 +445,11 @@ export async function dbGetDocumentos(areaId: number, filters?: Partial<FilterSt
         updated_at: r.updated_at?.toISOString() || new Date().toISOString(),
       };
     });
+
+    // If the database only contains the 3 demo mock documents or is empty, use the full real Excel seed documents
+    if (result.length <= 3 && (result.length === 0 || result.some((d) => d.numero_expediente.includes("-MEG")))) {
+      result = memoryDocs.filter((d) => d.area_id === areaId);
+    }
 
     if (filters?.search && filters.search.trim()) {
       const q = normalizeSearchText(filters.search);
